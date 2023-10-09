@@ -32,6 +32,17 @@ class SnowflurryQubitDevice(Device):
         self._max_workers = max_workers
         seed = np.random.randint(0, high=10000000) if seed == "global" else seed
         self._debugger = None
+
+    pennylane_requires = '>=0.27.0'
+
+    name = 'Snowflurry Qubit Device'
+    short_name = 'snowflurry.qubit'
+    version = '1.0'
+    author = 'Your Name or Organization'
+    observables = {"PauliX", "PauliY", "PauliZ", "Hadamard"}  # Update with supported observables
+    operations = {"CNOT", "Hadamard", "RX", "RY", "RZ"}  # Update with supported operations
+
+    
     @property
     def name(self):
         """The name of the device."""
@@ -87,3 +98,16 @@ class SnowflurryQubitDevice(Device):
             self._rng = np.random.default_rng(self._rng.integers(2**31 - 1))
 
         return results[0] if is_single_circuit else results
+
+    # Implement abstract methods
+    def apply(self, operations, **kwargs):
+        # Code to apply quantum operations
+        pass
+
+    def expval(self, observable, **kwargs):
+        # Code to compute expectation value
+        pass
+
+    def reset(self):
+        # Code to reset the device
+        pass
