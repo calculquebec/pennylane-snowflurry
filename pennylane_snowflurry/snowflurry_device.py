@@ -38,7 +38,7 @@ class SnowflurryQubitDevice(Device):
     name = 'Snowflurry Qubit Device'
     short_name = 'snowflurry.qubit'
     version = '1.0'
-    author = 'Your Name or Organization'
+    author = 'CalculQuébec'
     observables = {"PauliX", "PauliY", "PauliZ", "Hadamard"}  # Update with supported observables
     operations = {"CNOT", "Hadamard", "RX", "RY", "RZ"}  # Update with supported operations
 
@@ -102,6 +102,7 @@ class SnowflurryQubitDevice(Device):
     # Implement abstract methods
     def apply(self, operations, **kwargs):
         # Code to apply quantum operations
+        print(f"in apply func, operations : {operations}")
         pass
 
     def expval(self, observable, **kwargs):
