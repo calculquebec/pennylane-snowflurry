@@ -30,7 +30,10 @@ class SnowflurryQubitDevice(Device):
     ) -> None:
         super().__init__(wires=wires, shots=shots)
         self._max_workers = max_workers
+
         seed = np.random.randint(0, high=10000000) if seed == "global" else seed
+        self._rng = np.random.default_rng(seed)
+
         self._debugger = None
 
     pennylane_requires = '>=0.27.0'
@@ -64,18 +67,24 @@ class SnowflurryQubitDevice(Device):
             self.tracker.update(batches=1, executions=len(circuits))
             self.tracker.record()
 
-        max_workers = execution_config.device_options.get("max_workers", self._max_workers)
-        interface = (
-            execution_config.interface
-            if execution_config.gradient_method in {"backprop", None}
-            else None
-        )
+        # Check if execution_config is an instance of ExecutionConfig
+        if isinstance(execution_config, ExecutionConfig):
+            max_workers = execution_config.device_options.get("max_workers", self._max_workers)
+            interface = (
+                execution_config.interface
+                if execution_config.gradient_method in {"backprop", None}
+                else None
+            )
+        else:
+            # Fallback or default behavior if execution_config is not an instance of ExecutionConfig
+            max_workers = self._max_workers
+            interface = None
+
         if max_workers is None:
             results = tuple(
                 PennylaneConverter(
                     c,
                     rng=self._rng,
-                    prng_key=self._prng_key,
                     debugger=self._debugger,
                     interface=interface,
                 )
