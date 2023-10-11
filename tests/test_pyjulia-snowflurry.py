@@ -10,21 +10,31 @@ import numpy as np
 from pennylane.tape import QuantumScript
 
 
-class Test_TestSnowflurryPennylageIntegration(unittest.TestCase):
+class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
     def test_basic_julia(self):
         c = Snowflurry.QuantumCircuit(qubit_count=3)
         print(c)
         dev_def = qml.device("snowflurry.qubit", wires=3)
         self.assertEqual(True,True)
 
-    def test_gate_hadamard():
+    def test_gate_hadamard(self):
         c = Snowflurry.QuantumCircuit(qubit_count=3)
         j = julia.julia()
         j.eval("jl.eval('push!(c,hadamard(1))')")
-    def test_gate_PauliX():
-        c = Snowflurry.QuantumCircuit(qubit_count=3)
-        j = julia.julia()
-        j.eval("jl.eval('push!(c,hadamard(1))')")
+    def test_gate_PauliX(self):
+        dev_def = qml.device("snowflurry.qubit", wires=1)
+        @qml.qnode(dev_def)
+        def snowflurry_circuit():
+            qml.PauliX(0)
+            return qml.expval(qml.PauliZ(0))
+        
+        dev = qml.device("default.qubit", wires=1)
+        @qml.qnode(dev)
+        def pennylane_circuit():
+            qml.PauliX(0)
+            return qml.expval(qml.PauliZ(0))
+        self.assertEqual(snowflurry_circuit(), pennylane_circuit())
+
     def test_gate_PauliZ():
         c = Snowflurry.QuantumCircuit(qubit_count=3, gates=[sigma_x(1)])
         j = julia.julia()
@@ -33,8 +43,13 @@ class Test_TestSnowflurryPennylageIntegration(unittest.TestCase):
 if __name__ == '__main__':
     #julia.install()
     #unittest.main()
-    #dev_def = qml.device("snowflurry.qubit", wires=1)
-    dev = SnowflurryQubitDevice(wires=1)
+    dev_def = qml.device("snowflurry.qubit", wires=1)
+    @qml.qnode(dev_def)
+    def testfunc():
+        qml.PauliX(0)
+        return qml.expval(qml.PauliZ(0))
+    testfunc()
+    #dev = SnowflurryQubitDevice(wires=1)
     #make quantumtape with rx
     #enumerate gates
     #execute rx gate
