@@ -20,7 +20,7 @@ QuantumTape_or_Batch = Union[QuantumTape, QuantumTapeBatch]
 
 
 
-class SnowflurryQubitDevice(Device):
+class SnowflurryQubitDevice(qml.devices.Device):
     def __init__(
         self,
         wires=None,
@@ -107,17 +107,3 @@ class SnowflurryQubitDevice(Device):
             self._rng = np.random.default_rng(self._rng.integers(2**31 - 1))
 
         return results[0] if is_single_circuit else results
-
-    # Implement abstract methods
-    def apply(self, operations, **kwargs):
-        # Code to apply quantum operations
-        print(f"in apply func, operations : {operations}")
-        pass
-
-    def expval(self, observable, **kwargs):
-        # Code to compute expectation value
-        pass
-
-    def reset(self):
-        # Code to reset the device
-        pass
