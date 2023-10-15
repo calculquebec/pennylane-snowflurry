@@ -87,7 +87,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
                     rng=self._rng,
                     debugger=self._debugger,
                     interface=interface,
-                )
+                ).simulate()
                 for c in circuits
             )
         else:

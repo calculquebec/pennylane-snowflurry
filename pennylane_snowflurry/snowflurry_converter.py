@@ -1,14 +1,16 @@
 from julia import Snowflurry
 from julia import Main
+import julia
 import pennylane as qml
 from pennylane.tape import QuantumTape
 from pennylane.typing import Result, ResultBatch
+import numpy as np
 #https://snowflurrysdk.github.io/Snowflurry.jl/dev/library.html#Snowflurry.sigma_z
 SNOWFLURRY_OPERATION_MAP = {
     # native PennyLane native to snowflurry
-    "PauliX": NotImplementedError,
-    "PauliY": NotImplementedError,
-    "PauliZ": NotImplementedError,
+    "PauliX": "sigma_x",
+    "PauliY": "sigma_y",
+    "PauliZ": "sigma_z",
     "Hadamard": NotImplementedError,
     "CNOT": NotImplementedError,
     "CZ": NotImplementedError,
@@ -51,32 +53,28 @@ SNOWFLURRY_OPERATION_MAP = {
 
 class PennylaneConverter:
     def __init__(self, circuit: qml.tape.QuantumScript, rng=None, debugger=None, interface=None ) -> Result:
+        self.circuit = circuit
+        self.rng = rng
+        self.debugger = debugger
+        self.interface = interface
 
-        state, is_state_batched = self.get_final_state(circuit, debugger=debugger, interface=interface)
-        return self.measure_final_state(circuit, state, is_state_batched, rng=rng)
+
+    def simulate(self):
+        state, is_state_batched = self.get_final_state(self.circuit, debugger=self.debugger, interface=self.interface)
+        return self.measure_final_state(self.circuit, state, is_state_batched, self.rng)
+
     def getGateFromCircuit(circuit):
         return list(circuit)
-    
-    def applyOperation(ops):
-        c = Snowflurry.QuantumCircuit(qubit_count=3)#3 to be replaced by the items in the loop
-        julia_operation = ""
-        for key, value in ops.items():
-            if SNOWFLURRY_OPERATION_MAP[key] is NotImplementedError:
-                print(f"!! {key} is not implemented, skipping!!")
-                continue
-            julia_operation.append(SNOWFLURRY_OPERATION_MAP[key](*value))
-        return Main.eval(f"Snowflurry.QuantumCircuit(qubit_count=3)\n{julia_operation}")
-
 
     # def get_final_state(circuit, debugger, interface):
     #     return circuit.eval()
     
 
 
-    def measure_final_state(circuit, state, is_state_batched, rng, prng_key):
-        return NotImplementedError
+    def measure_final_state(self, circuit, state, is_state_batched, rng):
+        return state
     
-    def get_final_state(self, circuit: qml.tape.QuantumScript, debugger=None, interface=None):
+    def get_final_state(self, pennylane_circuit: qml.tape.QuantumScript, debugger=None, interface=None):
         """
         Get the final state for the SnowflurryQubitDevice.
 
@@ -90,18 +88,17 @@ class PennylaneConverter:
                 a boolean indicating if the state has a batch dimension.
         """
         sf_circuit = Snowflurry.QuantumCircuit(qubit_count=1)
-        print(f"muhtype : {type(circuit)}")
+        Main.sf_circuit = sf_circuit
+
         prep = None
-        if len(circuit) > 0 and isinstance(circuit[0], qml.operation.StatePrepBase):
-            prep = circuit[0]
+        if len(pennylane_circuit) > 0 and isinstance(pennylane_circuit[0], qml.operation.StatePrepBase):
+            prep = pennylane_circuit[0]
         # Add gates to Snowflurry circuit
-        for op in circuit.map_to_standard_wires().operations[bool(prep) :]:
-            # Here you'll need to map PennyLane gate names to Snowflurry gate functions
-            # For example, if op.name is 'PauliX' and it's applied on wire 0:
-            if op.name == "PauliX":
+        for op in pennylane_circuit.map_to_standard_wires().operations[bool(prep) :]:
+            if op.name in SNOWFLURRY_OPERATION_MAP:
                 current_wire = 0
-                julia.eval(f"push!(sf_circuit,sigma_x({current_wire}))")
-            # Add similar conditions for other gate types
+                print(f"placed {op.name}")
+                Snowflurry.eval(f"push!(sf_circuit,{SNOWFLURRY_OPERATION_MAP[op.name]}({current_wire}))")
 
         # Simulate the circuit using Snowflurry
         final_state = Snowflurry.simulate(sf_circuit)
