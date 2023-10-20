@@ -11,7 +11,7 @@ SNOWFLURRY_OPERATION_MAP = {
     "PauliX": "sigma_x",
     "PauliY": "sigma_y",
     "PauliZ": "sigma_z",
-    "Hadamard": NotImplementedError,
+    "Hadamard": "hadamard",
     "CNOT": NotImplementedError,
     "CZ": NotImplementedError,
     "SWAP": NotImplementedError,
@@ -19,7 +19,7 @@ SNOWFLURRY_OPERATION_MAP = {
     "RX": NotImplementedError,
     "RY": NotImplementedError,
     "RZ": NotImplementedError,
-    "Identity": NotImplementedError,
+    "Identity": "identity_gate",
     "CSWAP": NotImplementedError,
     "CRX": NotImplementedError,
     "CRY": NotImplementedError,
@@ -42,21 +42,13 @@ SNOWFLURRY_OPERATION_MAP = {
 
 
 
-
-
-
-
-
-
-
-
-
 class PennylaneConverter:
-    def __init__(self, circuit: qml.tape.QuantumScript, rng=None, debugger=None, interface=None ) -> Result:
+    def __init__(self, circuit: qml.tape.QuantumScript, rng=None, debugger=None, interface=None, auth='') -> Result:
         self.circuit = circuit
         self.rng = rng
         self.debugger = debugger
         self.interface = interface
+        self.auth = auth
 
 
     def simulate(self):
@@ -65,9 +57,6 @@ class PennylaneConverter:
 
     def getGateFromCircuit(circuit):
         return list(circuit)
-
-    # def get_final_state(circuit, debugger, interface):
-    #     return circuit.eval()
     
 
 

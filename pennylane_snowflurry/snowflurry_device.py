@@ -27,13 +27,14 @@ class SnowflurryQubitDevice(qml.devices.Device):
         shots=None,
         seed="global",
         max_workers=None,
+        auth=''
     ) -> None:
         super().__init__(wires=wires, shots=shots)
         self._max_workers = max_workers
 
         seed = np.random.randint(0, high=10000000) if seed == "global" else seed
         self._rng = np.random.default_rng(seed)
-
+        self.auth = auth
         self._debugger = None
 
     pennylane_requires = '>=0.27.0'
@@ -87,6 +88,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
                     rng=self._rng,
                     debugger=self._debugger,
                     interface=interface,
+                    auth=self.auth,
                 ).simulate()
                 for c in circuits
             )
