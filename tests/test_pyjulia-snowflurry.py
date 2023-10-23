@@ -40,6 +40,13 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
         j = julia.julia()
         j.eval("jl.eval('push!(c,hadamard(1))')")
 
+class Test_TestSnowflurryPennylaneBatch(unittest.TestCase):
+    def test_batch_execute(self):
+        dev = qml.device('snowflurry.qubit')
+        tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=50)
+        dev.execute(tape)
+        
+
 if __name__ == '__main__':
     #julia.install()
     #unittest.main()
@@ -47,24 +54,24 @@ if __name__ == '__main__':
     @qml.qnode(dev_def)
     def testfunc():
         qml.PauliX(0)
-        return qml.expval(qml.PauliZ(0))
-    testfunc()
+        return qml.state()
+    print(testfunc())
     #dev = SnowflurryQubitDevice(wires=1)
     #make quantumtape with rx
     #enumerate gates
     #execute rx gate
-    with qml.tape.QuantumTape() as tape:
-        qml.RX(0.432, wires=0)
-        qml.RY(0.543, wires=0)
-        qml.CNOT(wires=[0, 'a'])
-        qml.RX(0.133, wires='a')
-        qml.expval(qml.PauliZ(wires=[0]))
-        print(tape.circuit)
-    c = Main.eval("""
-                using Snowflurry
-                QuantumCircuit(qubit_count=3, gates=[sigma_x(1)])
-                """)
-    print(c)
+    # with qml.tape.QuantumTape() as tape:
+    #     qml.RX(0.432, wires=0)
+    #     qml.RY(0.543, wires=0)
+    #     qml.CNOT(wires=[0, 'a'])
+    #     qml.RX(0.133, wires='a')
+    #     qml.expval(qml.PauliZ(wires=[0]))
+    #     print(tape.circuit)
+    # c = Main.eval("""
+    #             using Snowflurry
+    #             QuantumCircuit(qubit_count=3, gates=[sigma_x(1)])
+    #             """)
+    # print(c)
     # ops = [qml.BasisState(np.array([1,1]), wires=(0,"a")),
     #     qml.RX(0.432, 0),
     #     qml.RY(0.543, 0),

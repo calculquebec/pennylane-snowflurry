@@ -76,24 +76,31 @@ class PennylaneConverter:
             Tuple[TensorLike, bool]: A tuple containing the final state of the quantum script and
                 a boolean indicating if the state has a batch dimension.
         """
-        sf_circuit = Snowflurry.QuantumCircuit(qubit_count=1)
-        Main.sf_circuit = sf_circuit
+        Main.eval("using Snowflurry")
+        Main.sf_circuit = Main.QuantumCircuit(qubit_count=1)
+        current_wire = 1
 
         prep = None
         if len(pennylane_circuit) > 0 and isinstance(pennylane_circuit[0], qml.operation.StatePrepBase):
             prep = pennylane_circuit[0]
+
         # Add gates to Snowflurry circuit
         for op in pennylane_circuit.map_to_standard_wires().operations[bool(prep) :]:
             if op.name in SNOWFLURRY_OPERATION_MAP:
-                current_wire = 0
                 print(f"placed {op.name}")
-                Snowflurry.eval(f"push!(sf_circuit,{SNOWFLURRY_OPERATION_MAP[op.name]}({current_wire}))")
+                if SNOWFLURRY_OPERATION_MAP[op.name] == NotImplementedError:
+                    print(f"{op.name} is not implemented yet, skipping...")
+                    continue
+                Main.eval(f"push!(sf_circuit,{SNOWFLURRY_OPERATION_MAP[op.name]}({current_wire}))")
 
-        # Simulate the circuit using Snowflurry
-        final_state = Snowflurry.simulate(sf_circuit)
 
+
+        final_state = Main.simulate(Main.sf_circuit)
+        print("states: ")
+        print(final_state)
+        probabilities = Main.get_measurement_probabilities(final_state)
+        print(probabilities)
         # Convert the final state to a NumPy array
-        # Note: Adjust the conversion based on how Snowflurry represents states
         final_state_np = np.array(final_state)
 
         return final_state_np, False
