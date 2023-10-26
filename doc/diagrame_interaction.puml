@@ -1,0 +1,17 @@
+@startuml
+hide empty methods
+hide empty attributes
+package Python {
+Pennylane <|-- SnowflurryQubitDevice
+SnowflurryQubitDevice -- PennylaneConverter
+circle PyJulia 
+PyJulia -- PennylaneConverter
+}
+package Julia.Snowflurry {
+QuantumCircuit -- PyJulia
+circle snowflurry_simulator
+circle anyon_rest_api
+QuantumCircuit --> snowflurry_simulator : software simulation
+QuantumCircuit --> anyon_rest_api : computing on quantum hardware
+}
+@enduml
