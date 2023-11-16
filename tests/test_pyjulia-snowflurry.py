@@ -13,15 +13,31 @@ from pennylane.tape import QuantumScript
 class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
     def test_basic_julia(self):
         c = Snowflurry.QuantumCircuit(qubit_count=3)
-        print(c)
         dev_def = qml.device("snowflurry.qubit", wires=3)
         self.assertEqual(True,True)
 
-    def test_gate_hadamard(self):
-        c = Snowflurry.QuantumCircuit(qubit_count=3)
-        j = julia.julia()
-        j.eval("jl.eval('push!(c,hadamard(1))')")
+    def test_execute_gate_hadamard(self):
+        dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
+        dev_pennylane = qml.device("default.qubit", wires=1)
+
+        tape_pennylane = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)],shots=1)
+        tape_snowflurry = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)])
+
+        self.assertEqual(type(dev_pennylane.execute(tape_pennylane)), type(dev_snowflurry.execute(tape_snowflurry)), "Hadamard gate, singular shot error")
+        
+        tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=50)
+        results = dev_snowflurry.execute(tape)
+        
+        self.assertEqual(type(dev_pennylane.execute(tape)), type(results), "Hadamard gate, multiple shots errors")
+        
+        self.assertTrue(abs(results['0'] - results['1']) < 10, "Hadamard gate, statistical error")
+
+
+
     def test_gate_PauliX(self):
+        dev = qml.device('snowflurry.qubit')
+        tape = qml.tape.QuantumScript([qml.PauliX(0)], [qml.counts(wires=0)], shots=50)
+        dev.execute(tape)
         dev_def = qml.device("snowflurry.qubit", wires=1)
         @qml.qnode(dev_def)
         def snowflurry_circuit():
@@ -35,7 +51,7 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
             return qml.expval(qml.PauliZ(0))
         self.assertEqual(snowflurry_circuit(), pennylane_circuit())
 
-    def test_gate_PauliZ():
+    def test_gate_PauliZ(self):
         c = Snowflurry.QuantumCircuit(qubit_count=3, gates=[sigma_x(1)])
         j = julia.julia()
         j.eval("jl.eval('push!(c,hadamard(1))')")
@@ -49,13 +65,29 @@ class Test_TestSnowflurryPennylaneBatch(unittest.TestCase):
 
 if __name__ == '__main__':
     #julia.install()
-    #unittest.main()
+    unittest.main()
     dev_def = qml.device("snowflurry.qubit", wires=1)
     @qml.qnode(dev_def)
     def testfunc():
         qml.PauliX(0)
         return qml.state()
+    print("here")
     print(testfunc())
+    print("there")
+
+    dev1 = qml.device("default.qubit", wires=1)
+    @qml.qnode(dev1)
+    def testfunc2():
+        qml.PauliX(0)
+        return qml.state()
+    print("1gasdagsd")
+    print(testfunc2())
+    print("2asfdfasd")
+    tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)])
+    print(f"results : {dev_def.execute(tape)}")
+    tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=1)
+    print(f"results : {dev1.execute(tape)}")
+    print(type(dev1.execute(tape)))
     #dev = SnowflurryQubitDevice(wires=1)
     #make quantumtape with rx
     #enumerate gates
