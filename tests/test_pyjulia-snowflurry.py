@@ -35,17 +35,17 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
 
 
     def test_gate_PauliX(self):
-        dev = qml.device('snowflurry.qubit')
+        dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
         tape = qml.tape.QuantumScript([qml.PauliX(0)], [qml.counts(wires=0)], shots=50)
-        dev.execute(tape)
-        dev_def = qml.device("snowflurry.qubit", wires=1)
-        @qml.qnode(dev_def)
+        self.assertTrue(dev_snowflurry.execute(tape)['1'] == 50, "PauliX gate, statistical error") 
+
+        @qml.qnode(dev_snowflurry)
         def snowflurry_circuit():
             qml.PauliX(0)
             return qml.expval(qml.PauliZ(0))
         
-        dev = qml.device("default.qubit", wires=1)
-        @qml.qnode(dev)
+        dev_pennylane = qml.device("default.qubit", wires=1)
+        @qml.qnode(dev_pennylane)
         def pennylane_circuit():
             qml.PauliX(0)
             return qml.expval(qml.PauliZ(0))
@@ -65,7 +65,7 @@ class Test_TestSnowflurryPennylaneBatch(unittest.TestCase):
 
 if __name__ == '__main__':
     #julia.install()
-    unittest.main()
+    #unittest.main()
     dev_def = qml.device("snowflurry.qubit", wires=1)
     @qml.qnode(dev_def)
     def testfunc():
@@ -83,11 +83,11 @@ if __name__ == '__main__':
     print("1gasdagsd")
     print(testfunc2())
     print("2asfdfasd")
-    tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)])
-    print(f"results : {dev_def.execute(tape)}")
-    tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=1)
-    print(f"results : {dev1.execute(tape)}")
-    print(type(dev1.execute(tape)))
+    # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)])
+    # print(f"results : {dev_def.execute(tape)}")
+    # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=1)
+    # print(f"results : {dev1.execute(tape)}")
+    # print(type(dev1.execute(tape)))
     #dev = SnowflurryQubitDevice(wires=1)
     #make quantumtape with rx
     #enumerate gates
