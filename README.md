@@ -4,6 +4,8 @@
 # Local installation
 clone repo on your computer
 
+pip install -r requirements.txt
+
 pip install git+https://github.com/PennyLaneAI/pennylane.git@master
 
 the following command will install the pennylane plugin on your computer
