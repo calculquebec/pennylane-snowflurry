@@ -31,6 +31,12 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
         self.assertEqual(type(dev_pennylane.execute(tape)), type(results), "Hadamard gate, multiple shots errors")
         
         self.assertTrue(abs(results['0'] - results['1']) < 10, "Hadamard gate, statistical error")
+        tape = qml.tape.QuantumTape([qml.Hadamard(0)],[qml.expval(qml.PauliZ(0))])
+    
+        self.assertEqual(dev_pennylane.execute(tape), dev_snowflurry.execute(tape))
+
+        tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
+        self.assertEqual(dev_pennylane.execute(tape), dev_snowflurry.execute(tape))
 
 
 
@@ -71,22 +77,20 @@ if __name__ == '__main__':
     def testfunc():
         qml.PauliX(0)
         return qml.state()
-    print("here")
-    print(testfunc())
-    print("there")
+
 
     dev1 = qml.device("default.qubit", wires=1)
     @qml.qnode(dev1)
     def testfunc2():
         qml.PauliX(0)
         return qml.state()
-    print("1gasdagsd")
-    print(testfunc2())
-    print("2asfdfasd")
+
+    #tape = qml.tape.QuantumTape([qml.Hadamard(0)],[qml.expval(qml.PauliZ(0))])
+    tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
     # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)])
-    # print(f"results : {dev_def.execute(tape)}")
     # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=1)
-    # print(f"results : {dev1.execute(tape)}")
+    print(f"results : {dev1.execute(tape)}")
+    print(f"results : {dev_def.execute(tape)}")
     # print(type(dev1.execute(tape)))
     #dev = SnowflurryQubitDevice(wires=1)
     #make quantumtape with rx
