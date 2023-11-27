@@ -6,21 +6,30 @@ from pennylane.tape import QuantumTape
 from pennylane.typing import Result, ResultBatch
 import numpy as np
 from collections import Counter
+from pennylane.measurements import (
+    StateMeasurement,
+    MeasurementProcess,
+    MeasurementValue,
+    ExpectationMP,
+)
+from pennylane.typing import TensorLike
+from typing import Callable
+
 #https://snowflurrysdk.github.io/Snowflurry.jl/dev/library.html#Snowflurry.sigma_z
 SNOWFLURRY_OPERATION_MAP = {
     # native PennyLane native to snowflurry
-    "PauliX": "sigma_x",
-    "PauliY": "sigma_y",
-    "PauliZ": "sigma_z",
-    "Hadamard": "hadamard",
-    "CNOT": NotImplementedError,
+    "PauliX": "sigma_x({0})",
+    "PauliY": "sigma_y({0})",
+    "PauliZ": "sigma_z({0})",
+    "Hadamard": "hadamard({0})",
+    "CNOT": "controlled(sigma_x({1}),{0})",
     "CZ": NotImplementedError,
     "SWAP": NotImplementedError,
     "ISWAP": NotImplementedError,
     "RX": NotImplementedError,
     "RY": NotImplementedError,
     "RZ": NotImplementedError,
-    "Identity": "identity_gate",
+    "Identity": "identity_gate({0})",
     "CSWAP": NotImplementedError,
     "CRX": NotImplementedError,
     "CRY": NotImplementedError,
@@ -85,6 +94,7 @@ class PennylaneConverter:
             
             circuit = circuit.map_to_standard_wires()
             shots = circuit.shots.total_shots
+            print(circuit.measurements)
             if shots is None:
                 shots = 1
             
@@ -139,8 +149,7 @@ class PennylaneConverter:
                 a boolean indicating if the state has a batch dimension.
         """
         Main.eval("using Snowflurry")
-        Main.sf_circuit = Main.QuantumCircuit(qubit_count=1)
-        current_wire = 1
+        Main.sf_circuit = Main.QuantumCircuit(qubit_count=len(pennylane_circuit.op_wires))
 
         prep = None
         if len(pennylane_circuit) > 0 and isinstance(pennylane_circuit[0], qml.operation.StatePrepBase):
@@ -149,15 +158,18 @@ class PennylaneConverter:
         # Add gates to Snowflurry circuit
         for op in pennylane_circuit.map_to_standard_wires().operations[bool(prep) :]:
             if op.name in SNOWFLURRY_OPERATION_MAP:
-                print(f"placed {op.name}")
                 if SNOWFLURRY_OPERATION_MAP[op.name] == NotImplementedError:
                     print(f"{op.name} is not implemented yet, skipping...")
                     continue
-                Main.eval(f"push!(sf_circuit,{SNOWFLURRY_OPERATION_MAP[op.name]}({current_wire}))")
+                gate = SNOWFLURRY_OPERATION_MAP[op.name].format(*op.wires.tolist())
+                print(f"placed {gate}")
+                Main.eval(f"push!(sf_circuit,{gate})")
 
 
 
-        Main.final_state = Main.simulate(Main.sf_circuit)
+        print("testing")
+        Main.final_state = Main.eval("simulate(sf_circuit)")
+        print("testing2")
         # Convert the final state to a NumPy array
         final_state_np = np.array(Main.final_state)
 
