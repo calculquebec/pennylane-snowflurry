@@ -66,7 +66,22 @@ class PennylaneConverter:
         return self.measure_final_state(self.circuit, state, is_state_batched, self.rng)
 
 
-
+    """
+    supported measurements : 
+    counts([op, wires, all_outcomes])
+    not supported measurements : 
+    expval(op)
+    sample([op, wires])
+    var(op)
+    probs([wires, op])
+    state()
+    density_matrix(wires)
+    vn_entropy(wires[, log_base])
+    mutual_info(wires0, wires1[, log_base])
+    purity(wires)
+    classical_shadow(wires[, seed])
+    shadow_expval(H[, k, seed])
+    """
     def measure_final_state(self, circuit, state, is_state_batched, rng):
             """
             Perform the measurements required by the circuit on the provided state.
@@ -80,10 +95,6 @@ class PennylaneConverter:
                 rng (Union[None, int, array_like[int], SeedSequence, BitGenerator, Generator]): A
                     seed-like parameter matching that of ``seed`` for ``numpy.random.default_rng``.
                     If no value is provided, a default RNG will be used.
-                prng_key (Optional[jax.random.PRNGKey]): An optional ``jax.random.PRNGKey``. This is
-                    the key to the JAX pseudo random number generator. Only for simulation using JAX.
-                    If None, the default ``sample_state`` function and a ``numpy.random.default_rng``
-                    will be for sampling.
 
             Returns:
                 Tuple[TensorLike]: The measurement results
@@ -106,10 +117,7 @@ class PennylaneConverter:
                 # analytic case
 
                 if len(circuit.measurements) == 1:
-                    probabilities = Main.get_measurement_probabilities(Main.final_state)
-                    print("supge")
-                    print(probabilities)
-                    return probabilities #measure(circuit.measurements[0], state, is_state_batched=is_state_batched)
+                    return measure(circuit.measurements[0], state, is_state_batched=is_state_batched)
 
                 return tuple(
                     measure(mp, state, is_state_batched=is_state_batched) for mp in circuit.measurements
@@ -174,3 +182,50 @@ class PennylaneConverter:
         final_state_np = np.array(Main.final_state)
 
         return final_state_np, False
+
+# new sections 
+    
+
+    def get_measurement_function(self,
+        measurementprocess: MeasurementProcess, state: TensorLike
+    ) -> Callable[[MeasurementProcess, TensorLike], TensorLike]:
+        """Get the appropriate method for performing a measurement.
+
+        Args:
+            measurementprocess (MeasurementProcess): measurement process to apply to the state
+            state (TensorLike): the state to measure
+            is_state_batched (bool): whether the state is batched or not
+
+        Returns:
+            Callable: function that returns the measurement result
+        """
+        if isinstance(measurementprocess, StateMeasurement):
+            if isinstance(measurementprocess.mv, MeasurementValue):
+                return state_diagonalizing_gates
+
+            if isinstance(measurementprocess, ExpectationMP):
+                if measurementprocess.obs.name == "SparseHamiltonian":
+                    return csr_dot_products
+
+                backprop_mode = math.get_interface(state, *measurementprocess.obs.data) != "numpy"
+                if isinstance(measurementprocess.obs, Hamiltonian):
+                    # need to work out thresholds for when its faster to use "backprop mode" measurements
+                    return sum_of_terms_method if backprop_mode else csr_dot_products
+
+                if isinstance(measurementprocess.obs, Sum):
+                    if backprop_mode:
+                        # always use sum_of_terms_method for Sum observables in backprop mode
+                        return sum_of_terms_method
+                    if (
+                        measurementprocess.obs.has_overlapping_wires
+                        and len(measurementprocess.obs.wires) > 7
+                    ):
+                        # Use tensor contraction for `Sum` expectation values with non-commuting summands
+                        # and 8 or more wires as it's faster than using eigenvalues.
+
+                        return csr_dot_products
+
+            if measurementprocess.obs is None or measurementprocess.obs.has_diagonalizing_gates:
+                return state_diagonalizing_gates
+
+        raise NotImplementedError
