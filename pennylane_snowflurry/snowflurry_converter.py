@@ -108,7 +108,6 @@ class PennylaneConverter:
             print(circuit.measurements)
             if shots is None:
                 shots = 1
-            
             shots_results = Main.simulate_shots(Main.sf_circuit, shots)
             result = dict(Counter(shots_results))
             return result
@@ -157,7 +156,8 @@ class PennylaneConverter:
                 a boolean indicating if the state has a batch dimension.
         """
         Main.eval("using Snowflurry")
-        Main.sf_circuit = Main.QuantumCircuit(qubit_count=len(pennylane_circuit.op_wires))
+        wires_nb = len(pennylane_circuit.op_wires)
+        Main.sf_circuit = Main.QuantumCircuit(qubit_count=wires_nb)
 
         prep = None
         if len(pennylane_circuit) > 0 and isinstance(pennylane_circuit[0], qml.operation.StatePrepBase):
@@ -169,17 +169,14 @@ class PennylaneConverter:
                 if SNOWFLURRY_OPERATION_MAP[op.name] == NotImplementedError:
                     print(f"{op.name} is not implemented yet, skipping...")
                     continue
-                gate = SNOWFLURRY_OPERATION_MAP[op.name].format(*op.wires.tolist())
+                gate = SNOWFLURRY_OPERATION_MAP[op.name].format(*[i+1 for i in op.wires.tolist()])
                 print(f"placed {gate}")
                 Main.eval(f"push!(sf_circuit,{gate})")
 
 
-
-        print("testing")
-        Main.final_state = Main.eval("simulate(sf_circuit)")
-        print("testing2")
+        result_state = Main.simulate(Main.sf_circuit)
         # Convert the final state to a NumPy array
-        final_state_np = np.array(Main.final_state)
+        final_state_np = np.array(result_state)
 
         return final_state_np, False
 
