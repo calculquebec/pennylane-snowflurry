@@ -69,6 +69,7 @@ class PennylaneConverter:
     """
     supported measurements : 
     counts([op, wires, all_outcomes])
+    
     not supported measurements : 
     expval(op)
     sample([op, wires])
@@ -106,6 +107,7 @@ class PennylaneConverter:
             circuit = circuit.map_to_standard_wires()
             shots = circuit.shots.total_shots
             print(circuit.measurements)
+            print(circuit.measurements[0])
             if shots is None:
                 shots = 1
             shots_results = Main.simulate_shots(Main.sf_circuit, shots)
