@@ -38,7 +38,94 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
         tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
         self.assertEqual(dev_pennylane.execute(tape), dev_snowflurry.execute(tape))
 
+    def test_circuit_basic_measure(self):
+        dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
+        dev_pennylane = qml.device("default.qubit", wires=1)
 
+        def circuit_state():
+            qml.Hadamard(0)
+            return qml.state()
+        r_s = qml.QNode(circuit_state, dev_snowflurry)
+        r_p = qml.QNode(circuit_state, dev_pennylane)
+        self.assertEqual(type(r_s),type(r_p))
+
+        @qml.qnode(dev_snowflurry)
+        def circuit_expval():
+            qml.Hadamard(0)
+            return qml.expval(qml.PauliZ(0))
+        r_s = qml.QNode(circuit_expval, dev_snowflurry)
+        r_p = qml.QNode(circuit_expval, dev_pennylane)
+        self.assertEqual(type(r_s),type(r_p))
+
+        def circuit_counts():
+            qml.Hadamard(0)
+            return qml.counts(qml.PauliY(0))
+        r_s = qml.QNode(circuit_counts, dev_snowflurry)
+        r_p = qml.QNode(circuit_counts, dev_pennylane)
+        self.assertEqual(type(r_s),type(r_p))
+        self.assertEqual(type(r_s),type(r_p))
+
+        def circuit_probs():
+            qml.Hadamard(0)
+            return qml.probs(wires=[0])
+        r_s = qml.QNode(circuit_probs, dev_snowflurry)
+        r_p = qml.QNode(circuit_probs, dev_pennylane)
+        self.assertEqual(type(r_s),type(r_p))
+
+        def circuit_density_matrix():
+            qml.Hadamard(0)
+            return qml.density_matrix([0])
+        r_s = qml.QNode(circuit_density_matrix, dev_snowflurry)
+        r_p = qml.QNode(circuit_density_matrix, dev_pennylane)
+        self.assertEqual(type(r_s),type(r_p))
+    
+    def test_circuit_advanced_measure(self):
+        dev_snowflurry = qml.device("snowflurry.qubit", wires=2)
+        dev_pennylane = qml.device("default.qubit", wires=2)
+        def circuit_var():
+            qml.Hadamard(0)
+            return qml.var(qml.PauliY(0))
+        r_s = qml.QNode(circuit_var, dev_snowflurry)
+        r_p = qml.QNode(circuit_var, dev_pennylane)
+
+        def circuit_purity():
+            qml.Hadamard(0)
+            qml.Hadamard(1)
+            return qml.purity(wires=[0,1])
+        r_s = qml.QNode(circuit_purity, dev_snowflurry)
+        r_p = qml.QNode(circuit_purity, dev_pennylane)
+        self.assertEqual(type(r_s),type(r_p))
+
+        def circuit_vn_entropy():
+            qml.Hadamard(0)
+            return qml.vn_entropy(wires=[0])
+        r_s = qml.QNode(circuit_vn_entropy, dev_snowflurry)
+        r_p = qml.QNode(circuit_vn_entropy, dev_pennylane)
+        self.assertEqual(type(r_s),type(r_p))
+        
+        def circuit_mutual_info():
+            qml.Hadamard(0)
+            qml.Hadamard(1)
+            return qml.mutual_info(wires0=[0], wires1=[1])
+        r_s = qml.QNode(circuit_mutual_info, dev_snowflurry)
+        r_p = qml.QNode(circuit_mutual_info, dev_pennylane)
+        self.assertEqual(type(r_s),type(r_p))
+
+        def circuit_classical_shadow():
+            qml.Hadamard(0)
+            qml.Hadamard(1)
+            return qml.classical_shadow(wires=[0, 1])
+        r_s = qml.QNode(circuit_classical_shadow, dev_snowflurry)
+        r_p = qml.QNode(circuit_classical_shadow, dev_pennylane)
+        self.assertEqual(type(r_s),type(r_p))
+
+        def circuit_shadow_expval():
+            qml.Hadamard(0)
+            qml.Hadamard(1)
+            return qml.shadow_expval(qml.Hamiltonian([1., 1.], [qml.PauliZ(0) @ qml.PauliZ(1), qml.PauliX(0) @ qml.PauliX(1)]))
+        r_s = qml.QNode(circuit_shadow_expval, dev_snowflurry)
+        r_p = qml.QNode(circuit_shadow_expval, dev_pennylane)
+        self.assertEqual(type(r_s),type(r_p))
 
     def test_gate_PauliX(self):
         dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
@@ -91,6 +178,11 @@ if __name__ == '__main__':
     # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=1)
     print(f"results : {dev1.execute(tape)}")
     print(f"results : {dev_def.execute(tape)}")
+    tape = qml.tape.QuantumScript([qml.Hadamard(0),qml.Hadamard(1)], [qml.counts(wires=[0,1])], shots=50)
+    new_dev = qml.device("snowflurry.qubit", wires=1)
+    results = new_dev.execute(tape)
+    print(f"results : {dev1.execute(tape)}")
+    print(f"results : {results}")
     # print(type(dev1.execute(tape)))
     #dev = SnowflurryQubitDevice(wires=1)
     #make quantumtape with rx
