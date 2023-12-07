@@ -72,16 +72,18 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
         r_p = qml.QNode(circuit_probs, dev_pennylane)
         self.assertEqual(type(r_s),type(r_p))
 
+    
+    def test_circuit_advanced_measure(self):
+        dev_snowflurry = qml.device("snowflurry.qubit", wires=2)
+        dev_pennylane = qml.device("default.qubit", wires=2)
+
         def circuit_density_matrix():
             qml.Hadamard(0)
             return qml.density_matrix([0])
         r_s = qml.QNode(circuit_density_matrix, dev_snowflurry)
         r_p = qml.QNode(circuit_density_matrix, dev_pennylane)
         self.assertEqual(type(r_s),type(r_p))
-    
-    def test_circuit_advanced_measure(self):
-        dev_snowflurry = qml.device("snowflurry.qubit", wires=2)
-        dev_pennylane = qml.device("default.qubit", wires=2)
+
         def circuit_var():
             qml.Hadamard(0)
             return qml.var(qml.PauliY(0))
@@ -144,10 +146,6 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
             return qml.expval(qml.PauliZ(0))
         self.assertEqual(snowflurry_circuit(), pennylane_circuit())
 
-    def test_gate_PauliZ(self):
-        c = Snowflurry.QuantumCircuit(qubit_count=3, gates=[sigma_x(1)])
-        j = julia.julia()
-        j.eval("jl.eval('push!(c,hadamard(1))')")
 
 class Test_TestSnowflurryPennylaneBatch(unittest.TestCase):
     def test_batch_execute(self):
@@ -183,32 +181,6 @@ if __name__ == '__main__':
     results = new_dev.execute(tape)
     print(f"results : {dev1.execute(tape)}")
     print(f"results : {results}")
-    # print(type(dev1.execute(tape)))
-    #dev = SnowflurryQubitDevice(wires=1)
-    #make quantumtape with rx
-    #enumerate gates
-    #execute rx gate
-    # with qml.tape.QuantumTape() as tape:
-    #     qml.RX(0.432, wires=0)
-    #     qml.RY(0.543, wires=0)
-    #     qml.CNOT(wires=[0, 'a'])
-    #     qml.RX(0.133, wires='a')
-    #     qml.expval(qml.PauliZ(wires=[0]))
-    #     print(tape.circuit)
-    # c = Main.eval("""
-    #             using Snowflurry
-    #             QuantumCircuit(qubit_count=3, gates=[sigma_x(1)])
-    #             """)
-    # print(c)
-    # ops = [qml.BasisState(np.array([1,1]), wires=(0,"a")),
-    #     qml.RX(0.432, 0),
-    #     qml.RY(0.543, 0),
-    #     qml.CNOT((0,"a")),
-    #     qml.RX(0.133, "a")]
 
-    # qscript = QuantumScript(ops, [qml.expval(qml.PauliZ(0))])
-    # for element in qscript:
-    #     print(type(element))
-    #     print(element)
 
 

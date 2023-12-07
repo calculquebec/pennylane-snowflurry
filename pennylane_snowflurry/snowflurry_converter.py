@@ -11,10 +11,11 @@ from pennylane.measurements import (
     MeasurementProcess,
     MeasurementValue,
     ExpectationMP,
+    CountsMP,
 )
 from pennylane.typing import TensorLike
 from typing import Callable
-
+from pennylane.ops import Sum, Hamiltonian
 #https://snowflurrysdk.github.io/Snowflurry.jl/dev/library.html#Snowflurry.sigma_z
 SNOWFLURRY_OPERATION_MAP = {
     # native PennyLane native to snowflurry
@@ -51,7 +52,10 @@ SNOWFLURRY_OPERATION_MAP = {
 
 
 
-
+"""
+if auth is left blank, the code will be ran on the simulator
+if auth is filled, the code will be sent to Anyon's API
+"""
 class PennylaneConverter:
     def __init__(self, circuit: qml.tape.QuantumScript, rng=None, debugger=None, interface=None, auth='') -> Result:
         self.circuit = circuit
@@ -69,8 +73,8 @@ class PennylaneConverter:
     """
     supported measurements : 
     counts([op, wires, all_outcomes])
-    
-    not supported measurements : 
+
+    currently not supported measurements : 
     expval(op)
     sample([op, wires])
     var(op)
@@ -106,44 +110,23 @@ class PennylaneConverter:
             
             circuit = circuit.map_to_standard_wires()
             shots = circuit.shots.total_shots
-            print(circuit.measurements)
-            print(circuit.measurements[0])
             if shots is None:
                 shots = 1
+            print(circuit.measurements)
+            print(circuit.measurements[0])
+            if isinstance(circuit.measurements[0], ExpectationMP):
+                if circuit.measurements[0].obs is not None and circuit.measurements[0].obs.has_matrix:
+                    observable_matrix = circuit.measurements[0].obs.compute_matrix()
+                    return Main.expected_value(Main.DenseOperator(observable_matrix), Main.result_state)
+                
+            # actual sampling cases
+            
+            if isinstance(circuit.measurements[0], CountsMP):
+                print("supge")
             shots_results = Main.simulate_shots(Main.sf_circuit, shots)
             result = dict(Counter(shots_results))
             return result
     
-            if not circuit.shots:
-                # analytic case
-
-                if len(circuit.measurements) == 1:
-                    return measure(circuit.measurements[0], state, is_state_batched=is_state_batched)
-
-                return tuple(
-                    measure(mp, state, is_state_batched=is_state_batched) for mp in circuit.measurements
-                )
-
-            # finite-shot case
-
-            rng = default_rng(rng)
-            results = measure_with_samples(
-                circuit.measurements,
-                state,
-                shots=circuit.shots,
-                is_state_batched=is_state_batched,
-                rng=rng,
-                prng_key=prng_key,
-            )
-
-            if len(circuit.measurements) == 1:
-                if circuit.shots.has_partitioned_shots:
-                    return tuple(res[0] for res in results)
-
-                return results[0]
-
-            return results
-            
     def get_final_state(self, pennylane_circuit: qml.tape.QuantumScript, debugger=None, interface=None):
         """
         Get the final state for the SnowflurryQubitDevice.
@@ -176,55 +159,8 @@ class PennylaneConverter:
                 Main.eval(f"push!(sf_circuit,{gate})")
 
 
-        result_state = Main.simulate(Main.sf_circuit)
+        Main.result_state = Main.simulate(Main.sf_circuit)
         # Convert the final state to a NumPy array
-        final_state_np = np.array(result_state)
+        final_state_np = np.array(Main.result_state)
 
         return final_state_np, False
-
-# new sections 
-    
-
-    def get_measurement_function(self,
-        measurementprocess: MeasurementProcess, state: TensorLike
-    ) -> Callable[[MeasurementProcess, TensorLike], TensorLike]:
-        """Get the appropriate method for performing a measurement.
-
-        Args:
-            measurementprocess (MeasurementProcess): measurement process to apply to the state
-            state (TensorLike): the state to measure
-            is_state_batched (bool): whether the state is batched or not
-
-        Returns:
-            Callable: function that returns the measurement result
-        """
-        if isinstance(measurementprocess, StateMeasurement):
-            if isinstance(measurementprocess.mv, MeasurementValue):
-                return state_diagonalizing_gates
-
-            if isinstance(measurementprocess, ExpectationMP):
-                if measurementprocess.obs.name == "SparseHamiltonian":
-                    return csr_dot_products
-
-                backprop_mode = math.get_interface(state, *measurementprocess.obs.data) != "numpy"
-                if isinstance(measurementprocess.obs, Hamiltonian):
-                    # need to work out thresholds for when its faster to use "backprop mode" measurements
-                    return sum_of_terms_method if backprop_mode else csr_dot_products
-
-                if isinstance(measurementprocess.obs, Sum):
-                    if backprop_mode:
-                        # always use sum_of_terms_method for Sum observables in backprop mode
-                        return sum_of_terms_method
-                    if (
-                        measurementprocess.obs.has_overlapping_wires
-                        and len(measurementprocess.obs.wires) > 7
-                    ):
-                        # Use tensor contraction for `Sum` expectation values with non-commuting summands
-                        # and 8 or more wires as it's faster than using eigenvalues.
-
-                        return csr_dot_products
-
-            if measurementprocess.obs is None or measurementprocess.obs.has_diagonalizing_gates:
-                return state_diagonalizing_gates
-
-        raise NotImplementedError
