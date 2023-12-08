@@ -73,13 +73,13 @@ class PennylaneConverter:
     """
     supported measurements : 
     counts([op, wires, all_outcomes])
+    expval(op)
+    state()
 
     currently not supported measurements : 
-    expval(op)
     sample([op, wires])
-    var(op)
     probs([wires, op])
-    state()
+    var(op)
     density_matrix(wires)
     vn_entropy(wires[, log_base])
     mutual_info(wires0, wires1[, log_base])
@@ -114,6 +114,10 @@ class PennylaneConverter:
                 shots = 1
             print(circuit.measurements)
             print(circuit.measurements[0])
+            if len(circuit.measurements) == 1:
+                pass
+            else:
+                tuple(print(mp) for mp in circuit.measurements)
             if isinstance(circuit.measurements[0], ExpectationMP):
                 if circuit.measurements[0].obs is not None and circuit.measurements[0].obs.has_matrix:
                     observable_matrix = circuit.measurements[0].obs.compute_matrix()
@@ -123,6 +127,9 @@ class PennylaneConverter:
             
             if isinstance(circuit.measurements[0], CountsMP):
                 print("supge")
+            if isinstance(circuit.measurements[0], StateMeasurement):
+                print("supgestate")
+                return state
             shots_results = Main.simulate_shots(Main.sf_circuit, shots)
             result = dict(Counter(shots_results))
             return result
@@ -161,6 +168,6 @@ class PennylaneConverter:
 
         Main.result_state = Main.simulate(Main.sf_circuit)
         # Convert the final state to a NumPy array
-        final_state_np = np.array(Main.result_state)
+        final_state_np = np.array([element for element in Main.result_state])
 
         return final_state_np, False
