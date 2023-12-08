@@ -66,8 +66,8 @@ class PennylaneConverter:
 
 
     def simulate(self):
-        state, is_state_batched = self.get_final_state(self.circuit, debugger=self.debugger, interface=self.interface)
-        return self.measure_final_state(self.circuit, state, is_state_batched, self.rng)
+        sf_circuit, is_state_batched = self.convert_circuit(self.circuit, debugger=self.debugger, interface=self.interface)
+        return self.measure_final_state(self.circuit, sf_circuit, is_state_batched, self.rng)
 
 
     """
@@ -87,7 +87,7 @@ class PennylaneConverter:
     classical_shadow(wires[, seed])
     shadow_expval(H[, k, seed])
     """
-    def measure_final_state(self, circuit, state, is_state_batched, rng):
+    def measure_final_state(self, circuit, sf_circuit, is_state_batched, rng):
             """
             Perform the measurements required by the circuit on the provided state.
 
@@ -95,7 +95,7 @@ class PennylaneConverter:
 
             Args:
                 circuit (.QuantumScript): The single circuit to simulate
-                state (TensorLike): The state to perform measurement on
+                sf_circuit : The snowflurry circuit used
                 is_state_batched (bool): Whether the state has a batch dimension or not.
                 rng (Union[None, int, array_like[int], SeedSequence, BitGenerator, Generator]): A
                     seed-like parameter matching that of ``seed`` for ``numpy.random.default_rng``.
@@ -118,7 +118,9 @@ class PennylaneConverter:
                 pass
             else:
                 tuple(print(mp) for mp in circuit.measurements)
+
             if isinstance(circuit.measurements[0], ExpectationMP):
+                Main.result_state = Main.simulate(sf_circuit) 
                 if circuit.measurements[0].obs is not None and circuit.measurements[0].obs.has_matrix:
                     observable_matrix = circuit.measurements[0].obs.compute_matrix()
                     return Main.expected_value(Main.DenseOperator(observable_matrix), Main.result_state)
@@ -126,17 +128,21 @@ class PennylaneConverter:
             # actual sampling cases
             
             if isinstance(circuit.measurements[0], CountsMP):
-                print("supge")
+                shots_results = Main.simulate_shots(Main.sf_circuit, shots)
+                result = dict(Counter(shots_results))
+                return result
+            
             if isinstance(circuit.measurements[0], StateMeasurement):
-                print("supgestate")
-                return state
-            shots_results = Main.simulate_shots(Main.sf_circuit, shots)
-            result = dict(Counter(shots_results))
-            return result
+                Main.result_state = Main.simulate(sf_circuit) 
+                # Convert the final state from pyjulia to a NumPy array
+                final_state_np = np.array([element for element in Main.result_state])
+                return final_state_np
+            return NotImplementedError
     
-    def get_final_state(self, pennylane_circuit: qml.tape.QuantumScript, debugger=None, interface=None):
+    def convert_circuit(self, pennylane_circuit: qml.tape.QuantumScript, debugger=None, interface=None):
         """
-        Get the final state for the SnowflurryQubitDevice.
+        Convert the received pennylane circuit into a snowflurry device in julia.
+        It is then store into Main.sf_circuit
 
         Args:
             circuit (QuantumTape): The circuit to simulate.
@@ -165,9 +171,4 @@ class PennylaneConverter:
                 print(f"placed {gate}")
                 Main.eval(f"push!(sf_circuit,{gate})")
 
-
-        Main.result_state = Main.simulate(Main.sf_circuit)
-        # Convert the final state to a NumPy array
-        final_state_np = np.array([element for element in Main.result_state])
-
-        return final_state_np, False
+        return Main.sf_circuit, False
