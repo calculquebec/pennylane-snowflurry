@@ -171,9 +171,9 @@ if __name__ == '__main__':
         return qml.state()
 
     #tape = qml.tape.QuantumTape([qml.Hadamard(0)],[qml.expval(qml.PauliZ(0))])
-    tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
     # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)])
     # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=1)
+    tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
     print(f"results : {dev1.execute(tape)}")
     print(f"results : {dev_def.execute(tape)}")
     tape = qml.tape.QuantumScript([qml.Hadamard(0),qml.Hadamard(1)], [qml.counts(wires=[0,1])], shots=50)
@@ -181,6 +181,9 @@ if __name__ == '__main__':
     results = new_dev.execute(tape)
     print(f"results : {dev1.execute(tape)}")
     print(f"results : {results}")
+    tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.state()])
+    print(f"results : {dev1.execute(tape)}")
+    print(f"results : {dev_def.execute(tape)}")
 
 
 

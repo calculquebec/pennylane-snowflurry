@@ -13,6 +13,7 @@ from pennylane.measurements import (
     ExpectationMP,
     CountsMP,
 )
+import time
 from pennylane.typing import TensorLike
 from typing import Callable
 from pennylane.ops import Sum, Hamiltonian
@@ -53,17 +54,19 @@ SNOWFLURRY_OPERATION_MAP = {
 
 
 """
-if auth is left blank, the code will be ran on the simulator
-if auth is filled, the code will be sent to Anyon's API
+if host, user, access_token are left blank, the code will be ran on the simulator
+if host, user, access_token are filled, the code will be sent to Anyon's API
 """
 class PennylaneConverter:
-    def __init__(self, circuit: qml.tape.QuantumScript, rng=None, debugger=None, interface=None, auth='') -> Result:
+    def __init__(self, circuit: qml.tape.QuantumScript, rng=None, debugger=None, interface=None, host="", user="", access_token="") -> Result:
         self.circuit = circuit
         self.rng = rng
         self.debugger = debugger
         self.interface = interface
-        self.auth = auth
-
+        if len(host) != 0 and len(user) != 0 and len(access_token) != 0:
+            Main.currentClient = Main.Eval("Client(host={host},user={user},access_token={access_token})")
+        else:
+            Main.currentClient = None
 
     def simulate(self):
         sf_circuit, is_state_batched = self.convert_circuit(self.circuit, debugger=self.debugger, interface=self.interface)
@@ -126,10 +129,30 @@ class PennylaneConverter:
                     return Main.expected_value(Main.DenseOperator(observable_matrix), Main.result_state)
                 
             # actual sampling cases
-            
             if isinstance(circuit.measurements[0], CountsMP):
-                shots_results = Main.simulate_shots(Main.sf_circuit, shots)
-                result = dict(Counter(shots_results))
+                if Main.currentClient is None:
+                    shots_results = Main.simulate_shots(Main.sf_circuit, shots)
+                    result = dict(Counter(shots_results))
+                else: #if we have a client, we try to use the real machine
+                    #NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
+                    #I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
+                    #WHOEVER WORK ON THIS ON THE FUTURE, CONSIDER THIS LIKE PSEUDOCODE
+                    #THE CIRCUITID WILL PROBABLY NEED TO BE RAN ON A DIFFERENT THREAD TO NOT STALL THE EXECUTION,
+                    #YOU CAN MAKE IT STALL IF THE REQUIREMENTS ALLOWS IT
+                    circuitID = Main.submit_circuit(Main.currentClient, Main.sf_circuit, shots)
+                    status = Main.get_status(circuitID)
+                    while status != "succeeded": #it won't be "succeeded", need to check what Main.get_status return
+                        print(f"checking for status for circuit id {circuitID}")
+                        time.sleep(1)
+                        status = Main.get_status(circuitID)
+                        print(f"current status : {status}")
+                        if status == "failed": #it won't be "failed", need to check what Main.get_status return
+                            break
+                    if status == "succeeded":
+                        return Main.get_result(circuitID)
+
+
+
                 return result
             
             if isinstance(circuit.measurements[0], StateMeasurement):
@@ -170,5 +193,7 @@ class PennylaneConverter:
                 gate = SNOWFLURRY_OPERATION_MAP[op.name].format(*[i+1 for i in op.wires.tolist()])
                 print(f"placed {gate}")
                 Main.eval(f"push!(sf_circuit,{gate})")
+            else:
+                print(f"{op.name} is not supported by this device. skipping...")
 
         return Main.sf_circuit, False

@@ -27,14 +27,18 @@ class SnowflurryQubitDevice(qml.devices.Device):
         shots=None,
         seed="global",
         max_workers=None,
-        auth=''
+        host="", 
+        user="", 
+        access_token=""
     ) -> None:
         super().__init__(wires=wires, shots=shots)
         self._max_workers = max_workers
 
         seed = np.random.randint(0, high=10000000) if seed == "global" else seed
         self._rng = np.random.default_rng(seed)
-        self.auth = auth
+        self.host = host
+        self.user = user
+        self.access_token = access_token
         self._debugger = None
 
     pennylane_requires = '>=0.27.0'
@@ -88,7 +92,9 @@ class SnowflurryQubitDevice(qml.devices.Device):
                     rng=self._rng,
                     debugger=self._debugger,
                     interface=interface,
-                    auth=self.auth,
+                    host=self.host, 
+                    user=self.user, 
+                    access_token=self.access_token,
                 ).simulate()
                 for c in circuits
             )
