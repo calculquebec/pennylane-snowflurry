@@ -157,14 +157,14 @@ class Test_TestSnowflurryPennylaneBatch(unittest.TestCase):
 if __name__ == '__main__':
     #julia.install()
     #unittest.main()
-    dev_def = qml.device("snowflurry.qubit", wires=1)
+    dev_def = qml.device("snowflurry.qubit", wires=1,shots=50)
     @qml.qnode(dev_def)
     def testfunc():
         qml.PauliX(0)
         return qml.state()
 
 
-    dev1 = qml.device("default.qubit", wires=1)
+    dev1 = qml.device("default.qubit", wires=1,shots=50)
     @qml.qnode(dev1)
     def testfunc2():
         qml.PauliX(0)
@@ -173,17 +173,27 @@ if __name__ == '__main__':
     #tape = qml.tape.QuantumTape([qml.Hadamard(0)],[qml.expval(qml.PauliZ(0))])
     # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)])
     # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=1)
-    tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
-    print(f"results : {dev1.execute(tape)}")
-    print(f"results : {dev_def.execute(tape)}")
-    tape = qml.tape.QuantumScript([qml.Hadamard(0),qml.Hadamard(1)], [qml.counts(wires=[0,1])], shots=50)
-    new_dev = qml.device("snowflurry.qubit", wires=1)
-    results = new_dev.execute(tape)
-    print(f"results : {dev1.execute(tape)}")
-    print(f"results : {results}")
-    tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.state()])
-    print(f"results : {dev1.execute(tape)}")
-    print(f"results : {dev_def.execute(tape)}")
+    # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
+    # print(f"results : {dev1.execute(tape)}")
+    # print(f"results : {dev_def.execute(tape)}")
+    # tape = qml.tape.QuantumScript([qml.Hadamard(0),qml.Hadamard(1)], [qml.counts(wires=[0,1])], shots=50)
+    # new_dev = qml.device("snowflurry.qubit", wires=1)
+    # results = new_dev.execute(tape)
+    # print(f"results : {dev1.execute(tape)}")
+    # print(f"results : {results}")
+    # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.state()])
+    # print(f"results : {dev1.execute(tape)}")
+    # print(f"results : {dev_def.execute(tape)}")
+    @qml.qnode(dev1)
+    def circ1():
+        qml.Hadamard(0)
+        return qml.sample(qml.PauliZ(0))
+    @qml.qnode(dev_def)
+    def circ2():
+        qml.Hadamard(0)
+        return qml.sample(qml.PauliZ(0))
+    print(f"results : {circ1()}")
+    print(f"results : {circ2()}")
 
 
 

@@ -10,6 +10,7 @@ from pennylane.measurements import (
     StateMeasurement,
     MeasurementProcess,
     MeasurementValue,
+    SampleMP,
     ExpectationMP,
     CountsMP,
 )
@@ -128,11 +129,17 @@ class PennylaneConverter:
                     observable_matrix = circuit.measurements[0].obs.compute_matrix()
                     return Main.expected_value(Main.DenseOperator(observable_matrix), Main.result_state)
                 
+            if isinstance(circuit.measurements[0], StateMeasurement):
+                Main.result_state = Main.simulate(sf_circuit) 
+                # Convert the final state from pyjulia to a NumPy array
+                final_state_np = np.array([element for element in Main.result_state])
+                return final_state_np
             # actual sampling cases
             if isinstance(circuit.measurements[0], CountsMP):
                 if Main.currentClient is None:
                     shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                     result = dict(Counter(shots_results))
+                    return result
                 else: #if we have a client, we try to use the real machine
                     #NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
                     #I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
@@ -150,16 +157,28 @@ class PennylaneConverter:
                             break
                     if status == "succeeded":
                         return Main.get_result(circuitID)
-
-
-
-                return result
             
-            if isinstance(circuit.measurements[0], StateMeasurement):
-                Main.result_state = Main.simulate(sf_circuit) 
-                # Convert the final state from pyjulia to a NumPy array
-                final_state_np = np.array([element for element in Main.result_state])
-                return final_state_np
+            if isinstance(circuit.measurements[0], SampleMP):
+                if Main.currentClient is None:
+                    shots_results = Main.simulate_shots(Main.sf_circuit, shots)
+                    return np.asarray(shots_results).astype(int)
+                else: #if we have a client, we try to use the real machine
+                    #NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
+                    #I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
+                    #WHOEVER WORK ON THIS ON THE FUTURE, CONSIDER THIS LIKE PSEUDOCODE
+                    #THE CIRCUITID WILL PROBABLY NEED TO BE RAN ON A DIFFERENT THREAD TO NOT STALL THE EXECUTION,
+                    #YOU CAN MAKE IT STALL IF THE REQUIREMENTS ALLOWS IT
+                    circuitID = Main.submit_circuit(Main.currentClient, Main.sf_circuit, shots)
+                    status = Main.get_status(circuitID)
+                    while status != "succeeded": #it won't be "succeeded", need to check what Main.get_status return
+                        print(f"checking for status for circuit id {circuitID}")
+                        time.sleep(1)
+                        status = Main.get_status(circuitID)
+                        print(f"current status : {status}")
+                        if status == "failed": #it won't be "failed", need to check what Main.get_status return
+                            break
+                    if status == "succeeded":
+                        return Main.get_result(circuitID)
             return NotImplementedError
     
     def convert_circuit(self, pennylane_circuit: qml.tape.QuantumScript, debugger=None, interface=None):
