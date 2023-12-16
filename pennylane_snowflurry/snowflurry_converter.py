@@ -10,6 +10,7 @@ from pennylane.measurements import (
     StateMeasurement,
     MeasurementProcess,
     MeasurementValue,
+    ProbabilityMP,
     SampleMP,
     ExpectationMP,
     CountsMP,
@@ -59,6 +60,23 @@ if host, user, access_token are left blank, the code will be ran on the simulato
 if host, user, access_token are filled, the code will be sent to Anyon's API
 """
 class PennylaneConverter:
+    """
+    supported measurements : 
+    counts([op, wires, all_outcomes]) arguments have no effect
+    expval(op)
+    state()
+    sample([op, wires]) arguments have no effect
+    probs([wires, op]) arguments have no effect
+
+    currently not supported measurements : 
+    var(op)
+    density_matrix(wires)
+    vn_entropy(wires[, log_base])
+    mutual_info(wires0, wires1[, log_base])
+    purity(wires)
+    classical_shadow(wires[, seed])
+    shadow_expval(H[, k, seed])
+    """
     def __init__(self, circuit: qml.tape.QuantumScript, rng=None, debugger=None, interface=None, host="", user="", access_token="") -> Result:
         self.circuit = circuit
         self.rng = rng
@@ -74,112 +92,6 @@ class PennylaneConverter:
         return self.measure_final_state(self.circuit, sf_circuit, is_state_batched, self.rng)
 
 
-    """
-    supported measurements : 
-    counts([op, wires, all_outcomes])
-    expval(op)
-    state()
-
-    currently not supported measurements : 
-    sample([op, wires])
-    probs([wires, op])
-    var(op)
-    density_matrix(wires)
-    vn_entropy(wires[, log_base])
-    mutual_info(wires0, wires1[, log_base])
-    purity(wires)
-    classical_shadow(wires[, seed])
-    shadow_expval(H[, k, seed])
-    """
-    def measure_final_state(self, circuit, sf_circuit, is_state_batched, rng):
-            """
-            Perform the measurements required by the circuit on the provided state.
-
-            This is an internal function that will be called by the successor to ``default.qubit``.
-
-            Args:
-                circuit (.QuantumScript): The single circuit to simulate
-                sf_circuit : The snowflurry circuit used
-                is_state_batched (bool): Whether the state has a batch dimension or not.
-                rng (Union[None, int, array_like[int], SeedSequence, BitGenerator, Generator]): A
-                    seed-like parameter matching that of ``seed`` for ``numpy.random.default_rng``.
-                    If no value is provided, a default RNG will be used.
-
-            Returns:
-                Tuple[TensorLike]: The measurement results
-            """
-            #circuit.shots can return the total number of shots with .total_shots or 
-            #it can return ShotCopies with .shot_vector
-            #the case with ShotCopies is not handled as of now
-            
-            circuit = circuit.map_to_standard_wires()
-            shots = circuit.shots.total_shots
-            if shots is None:
-                shots = 1
-            print(circuit.measurements)
-            print(circuit.measurements[0])
-            if len(circuit.measurements) == 1:
-                pass
-            else:
-                tuple(print(mp) for mp in circuit.measurements)
-
-            if isinstance(circuit.measurements[0], ExpectationMP):
-                Main.result_state = Main.simulate(sf_circuit) 
-                if circuit.measurements[0].obs is not None and circuit.measurements[0].obs.has_matrix:
-                    observable_matrix = circuit.measurements[0].obs.compute_matrix()
-                    return Main.expected_value(Main.DenseOperator(observable_matrix), Main.result_state)
-                
-            if isinstance(circuit.measurements[0], StateMeasurement):
-                Main.result_state = Main.simulate(sf_circuit) 
-                # Convert the final state from pyjulia to a NumPy array
-                final_state_np = np.array([element for element in Main.result_state])
-                return final_state_np
-            # actual sampling cases
-            if isinstance(circuit.measurements[0], CountsMP):
-                if Main.currentClient is None:
-                    shots_results = Main.simulate_shots(Main.sf_circuit, shots)
-                    result = dict(Counter(shots_results))
-                    return result
-                else: #if we have a client, we try to use the real machine
-                    #NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
-                    #I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
-                    #WHOEVER WORK ON THIS ON THE FUTURE, CONSIDER THIS LIKE PSEUDOCODE
-                    #THE CIRCUITID WILL PROBABLY NEED TO BE RAN ON A DIFFERENT THREAD TO NOT STALL THE EXECUTION,
-                    #YOU CAN MAKE IT STALL IF THE REQUIREMENTS ALLOWS IT
-                    circuitID = Main.submit_circuit(Main.currentClient, Main.sf_circuit, shots)
-                    status = Main.get_status(circuitID)
-                    while status != "succeeded": #it won't be "succeeded", need to check what Main.get_status return
-                        print(f"checking for status for circuit id {circuitID}")
-                        time.sleep(1)
-                        status = Main.get_status(circuitID)
-                        print(f"current status : {status}")
-                        if status == "failed": #it won't be "failed", need to check what Main.get_status return
-                            break
-                    if status == "succeeded":
-                        return Main.get_result(circuitID)
-            
-            if isinstance(circuit.measurements[0], SampleMP):
-                if Main.currentClient is None:
-                    shots_results = Main.simulate_shots(Main.sf_circuit, shots)
-                    return np.asarray(shots_results).astype(int)
-                else: #if we have a client, we try to use the real machine
-                    #NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
-                    #I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
-                    #WHOEVER WORK ON THIS ON THE FUTURE, CONSIDER THIS LIKE PSEUDOCODE
-                    #THE CIRCUITID WILL PROBABLY NEED TO BE RAN ON A DIFFERENT THREAD TO NOT STALL THE EXECUTION,
-                    #YOU CAN MAKE IT STALL IF THE REQUIREMENTS ALLOWS IT
-                    circuitID = Main.submit_circuit(Main.currentClient, Main.sf_circuit, shots)
-                    status = Main.get_status(circuitID)
-                    while status != "succeeded": #it won't be "succeeded", need to check what Main.get_status return
-                        print(f"checking for status for circuit id {circuitID}")
-                        time.sleep(1)
-                        status = Main.get_status(circuitID)
-                        print(f"current status : {status}")
-                        if status == "failed": #it won't be "failed", need to check what Main.get_status return
-                            break
-                    if status == "succeeded":
-                        return Main.get_result(circuitID)
-            return NotImplementedError
     
     def convert_circuit(self, pennylane_circuit: qml.tape.QuantumScript, debugger=None, interface=None):
         """
@@ -216,3 +128,97 @@ class PennylaneConverter:
                 print(f"{op.name} is not supported by this device. skipping...")
 
         return Main.sf_circuit, False
+    
+    def measure_final_state(self, circuit, sf_circuit, is_state_batched, rng):
+            """
+            Perform the measurements required by the circuit on the provided state.
+
+            This is an internal function that will be called by the successor to ``default.qubit``.
+
+            Args:
+                circuit (.QuantumScript): The single circuit to simulate
+                sf_circuit : The snowflurry circuit used
+                is_state_batched (bool): Whether the state has a batch dimension or not.
+                rng (Union[None, int, array_like[int], SeedSequence, BitGenerator, Generator]): A
+                    seed-like parameter matching that of ``seed`` for ``numpy.random.default_rng``.
+                    If no value is provided, a default RNG will be used.
+
+            Returns:
+                Tuple[TensorLike]: The measurement results
+            """
+            #circuit.shots can return the total number of shots with .total_shots or 
+            #it can return ShotCopies with .shot_vector
+            #the case with ShotCopies is not handled as of now
+            
+            circuit = circuit.map_to_standard_wires()
+            shots = circuit.shots.total_shots
+            if shots is None:
+                shots = 1
+            print(circuit.measurements)
+            print(circuit.measurements[0])
+            if len(circuit.measurements) == 1:
+                return self.measure(circuit.measurements[0],sf_circuit,shots)
+            else:
+                return tuple(self.measure(mp,sf_circuit,shots) for mp in circuit.measurements)
+
+
+    def measure(self, mp:MeasurementProcess, sf_circuit, shots):
+        if isinstance(mp, CountsMP): # this measure can run on hardware
+            if Main.currentClient is None:
+                shots_results = Main.simulate_shots(Main.sf_circuit, shots)
+                result = dict(Counter(shots_results))
+                return result
+            else: #if we have a client, we try to use the real machine
+                #NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
+                #I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
+                #WHOEVER WORK ON THIS ON THE FUTURE, CONSIDER THIS LIKE PSEUDOCODE
+                #THE CIRCUITID WILL PROBABLY NEED TO BE RAN ON A DIFFERENT THREAD TO NOT STALL THE EXECUTION,
+                #YOU CAN MAKE IT STALL IF THE REQUIREMENTS ALLOWS IT
+                circuitID = Main.submit_circuit(Main.currentClient, Main.sf_circuit, shots)
+                status = Main.get_status(circuitID)
+                while status != "succeeded": #it won't be "succeeded", need to check what Main.get_status return
+                    print(f"checking for status for circuit id {circuitID}")
+                    time.sleep(1)
+                    status = Main.get_status(circuitID)
+                    print(f"current status : {status}")
+                    if status == "failed": #it won't be "failed", need to check what Main.get_status return
+                        break
+                if status == "succeeded":
+                    return Main.get_result(circuitID)
+        if isinstance(mp, SampleMP): # this measure can run on hardware
+            if Main.currentClient is None:
+                shots_results = Main.simulate_shots(Main.sf_circuit, shots)
+                return np.asarray(shots_results).astype(int)
+            else: #if we have a client, we try to use the real machine
+                #NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
+                #I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
+                #WHOEVER WORK ON THIS ON THE FUTURE, CONSIDER THIS LIKE PSEUDOCODE
+                #THE CIRCUITID WILL PROBABLY NEED TO BE RAN ON A DIFFERENT THREAD TO NOT STALL THE EXECUTION,
+                #YOU CAN MAKE IT STALL IF THE REQUIREMENTS ALLOWS IT
+                circuitID = Main.submit_circuit(Main.currentClient, Main.sf_circuit, shots)
+                status = Main.get_status(circuitID)
+                while status != "succeeded": #it won't be "succeeded", need to check what Main.get_status return
+                    print(f"checking for status for circuit id {circuitID}")
+                    time.sleep(1)
+                    status = Main.get_status(circuitID)
+                    print(f"current status : {status}")
+                    if status == "failed": #it won't be "failed", need to check what Main.get_status return
+                        break
+                if status == "succeeded":
+                    return Main.get_result(circuitID)
+        if isinstance(mp, ProbabilityMP):
+            return Main.get_measurement_probabilities(Main.sf_circuit)
+        
+        if isinstance(mp, ExpectationMP):
+            Main.result_state = Main.simulate(sf_circuit) 
+            if mp.obs is not None and mp.obs.has_matrix:
+                observable_matrix = mp.obs.compute_matrix()
+                return Main.expected_value(Main.DenseOperator(observable_matrix), Main.result_state)
+            
+        if isinstance(mp, StateMeasurement):
+            print("probn't")
+            Main.result_state = Main.simulate(sf_circuit) 
+            # Convert the final state from pyjulia to a NumPy array
+            final_state_np = np.array([element for element in Main.result_state])
+            return final_state_np
+        return NotImplementedError
