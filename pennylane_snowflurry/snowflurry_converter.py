@@ -154,8 +154,7 @@ class PennylaneConverter:
             shots = circuit.shots.total_shots
             if shots is None:
                 shots = 1
-            print(circuit.measurements)
-            print(circuit.measurements[0])
+
             if len(circuit.measurements) == 1:
                 return self.measure(circuit.measurements[0],sf_circuit,shots)
             else:
@@ -207,7 +206,11 @@ class PennylaneConverter:
                 if status == "succeeded":
                     return Main.get_result(circuitID)
         if isinstance(mp, ProbabilityMP):
-            return Main.get_measurement_probabilities(Main.sf_circuit)
+            wires_list = mp.wires.tolist()
+            if len(wires_list) == 0:
+                return Main.get_measurement_probabilities(Main.sf_circuit)
+            else:
+                return Main.get_measurement_probabilities(Main.sf_circuit, [i+1 for i in wires_list])
         
         if isinstance(mp, ExpectationMP):
             Main.result_state = Main.simulate(sf_circuit) 
@@ -216,7 +219,6 @@ class PennylaneConverter:
                 return Main.expected_value(Main.DenseOperator(observable_matrix), Main.result_state)
             
         if isinstance(mp, StateMeasurement):
-            print("probn't")
             Main.result_state = Main.simulate(sf_circuit) 
             # Convert the final state from pyjulia to a NumPy array
             final_state_np = np.array([element for element in Main.result_state])
