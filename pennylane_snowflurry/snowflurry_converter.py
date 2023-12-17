@@ -30,9 +30,9 @@ SNOWFLURRY_OPERATION_MAP = {
     "CZ": NotImplementedError,
     "SWAP": NotImplementedError,
     "ISWAP": NotImplementedError,
-    "RX": NotImplementedError,
-    "RY": NotImplementedError,
-    "RZ": NotImplementedError,
+    "RX": "rotation_x({1},{0})",
+    "RY": "rotation_y({1},{0})",
+    "RZ": "rotation_z({1},{0})",
     "Identity": "identity_gate({0})",
     "CSWAP": NotImplementedError,
     "CRX": NotImplementedError,
@@ -121,7 +121,8 @@ class PennylaneConverter:
                 if SNOWFLURRY_OPERATION_MAP[op.name] == NotImplementedError:
                     print(f"{op.name} is not implemented yet, skipping...")
                     continue
-                gate = SNOWFLURRY_OPERATION_MAP[op.name].format(*[i+1 for i in op.wires.tolist()])
+                parameters = op.parameters + [i+1 for i in op.wires.tolist()]
+                gate = SNOWFLURRY_OPERATION_MAP[op.name].format(*parameters)
                 print(f"placed {gate}")
                 Main.eval(f"push!(sf_circuit,{gate})")
             else:

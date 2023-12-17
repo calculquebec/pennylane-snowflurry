@@ -48,7 +48,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
     version = '1.0'
     author = 'CalculQuébec'
     observables = {"PauliX", "PauliY", "PauliZ", "Hadamard"}  # Update with supported observables
-    operations = {"CNOT", "Hadamard", "RX", "RY", "RZ"}  # Update with supported operations
+    operations = {"CNOT", "Hadamard", "RX", "RY", "RZ","PauliX", "PauliY", "PauliZ",}  # Update with supported operations
 
     
     @property

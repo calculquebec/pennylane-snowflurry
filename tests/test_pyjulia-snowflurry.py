@@ -186,11 +186,11 @@ if __name__ == '__main__':
     # print(f"results : {dev_def.execute(tape)}")
     @qml.qnode(dev1)
     def circ1():
-        qml.Hadamard(0)
+        qml.RX(0.5,0)
         return qml.probs()
     @qml.qnode(dev_def)
     def circ2():
-        qml.Hadamard(0)
+        qml.RX(0.5,0)
         return qml.probs()
     print(f"results : {circ1()}")
     print(f"results : {circ2()}")
