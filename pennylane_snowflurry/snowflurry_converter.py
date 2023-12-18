@@ -26,29 +26,32 @@ SNOWFLURRY_OPERATION_MAP = {
     "PauliY": "sigma_y({0})",
     "PauliZ": "sigma_z({0})",
     "Hadamard": "hadamard({0})",
-    "CNOT": "controlled(sigma_x({1}),{0})",
-    "CZ": NotImplementedError,
-    "SWAP": NotImplementedError,
-    "ISWAP": NotImplementedError,
+    "CNOT": "control_x({0},{1})",
+    "CZ": "control_z({0},{1})",
+    "SWAP": "swap({0},{1})",
+    "ISWAP": "iswap({0},{1})",
     "RX": "rotation_x({1},{0})",
     "RY": "rotation_y({1},{0})",
     "RZ": "rotation_z({1},{0})",
     "Identity": "identity_gate({0})",
     "CSWAP": NotImplementedError,
-    "CRX": NotImplementedError,
+    "CRX": "controlled(rotation_x({1},{0}),{1})", #gates using controlled probably wont work, might have to do a special operations for those cases.
     "CRY": NotImplementedError,
     "CRZ": NotImplementedError,
-    "PhaseShift": NotImplementedError,
+    "PhaseShift": "phase_shift({1},{0})",
     "QubitStateVector": NotImplementedError,
     "StatePrep": NotImplementedError,
-    "Toffoli": NotImplementedError,
+    "Toffoli": "toffoli({0},{1},{2})", #order might be wrong on that one
     "QubitUnitary": NotImplementedError,
     "U1": NotImplementedError,
     "U2": NotImplementedError,
-    "U3": NotImplementedError,
+    "U3": "universal({3},{0},{1},{2})",
     "IsingZZ": NotImplementedError,
     "IsingYY": NotImplementedError,
     "IsingXX": NotImplementedError,
+    "T": "pi_8({0})",
+    "Rot": "rotation({3},{0},{1})", #theta, phi but no omega so we skip {2}, {3} is the wire
+    "QubitUnitary": NotImplementedError, # might correspond to apply_gate!(state::Ket, gate::Gate) from snowflurry
 }
 
 
