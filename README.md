@@ -1,23 +1,27 @@
 # pennylane-snowflurry
 
-to install the snowflurry plugin, execute 
+To install the snowflurry plugin, execute 
 
 `pip install pennylane-snowflurry`
 
-once done, you should be able to use the new device like so 
+once done, you should be able to use the new device like so:
 
-`dev_def = qml.device("snowflurry.qubit", wires=1, shots=50)`
+```py
+dev_def = qml.device("snowflurry.qubit", wires=1, shots=50)
+```
 
-Example if you have access to anyon's quantum computer
+Example if you have access to anyon's quantum computer:
 
-`dev_def = qml.device("snowflurry.qubit", wires=1, shots=50, host="example.anyonsys.com", user="test_user",access_token="not_a_real_access_token")`
+```py
+dev_def = qml.device("snowflurry.qubit", wires=1, shots=50, host="example.anyonsys.com", user="test_user",access_token="not_a_real_access_token")
+```
 
-# state of the project
+## State of the project
 
 This plugin is still very early in its development and not thoroughly tested. expect issues.
 
 
-# project structure
+## Project structure
 
 ![puml diagram](/doc/interaction_diagram.png)
 
@@ -55,6 +59,6 @@ or
 
 
 
-# Running the tests
+## Running the tests
 
 `python -m tests.test_pyjulia-snowflurry -v`
