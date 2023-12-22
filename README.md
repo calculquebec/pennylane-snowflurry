@@ -1,10 +1,6 @@
 # pennylane-snowflurry
 
-To install the snowflurry plugin, execute 
-
-`pip install pennylane-snowflurry`
-
-once done, you should be able to use the new device like so:
+Once installed, the device can be used like so:
 
 ```py
 dev_def = qml.device("snowflurry.qubit", wires=1, shots=50)
