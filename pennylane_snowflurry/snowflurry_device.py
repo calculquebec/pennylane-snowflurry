@@ -7,29 +7,37 @@ from pennylane.tape import QuantumTape, QuantumScript
 from pennylane.typing import Result, ResultBatch
 from pennylane.transforms import convert_to_numpy_parameters
 from pennylane.transforms.core import TransformProgram
-from .snowflurry_converter import PennylaneConverter
-from julia import Snowflurry    # The code to test
-from .execution_config import ExecutionConfig, DefaultExecutionConfig
+from pennylane_snowflurry.snowflurry_converter import PennylaneConverter
+from julia import Snowflurry  # The code to test
+from pennylane_snowflurry.execution_config import (
+    ExecutionConfig,
+    DefaultExecutionConfig,
+)
 from pennylane.typing import Result, ResultBatch
 
 
 Result_or_ResultBatch = Union[Result, ResultBatch]
 QuantumTapeBatch = Sequence[QuantumTape]
-QuantumTape_or_Batch = Union[QuantumTape, QuantumTapeBatch]
-
-
+QuantumTape_or_Batch = Union[
+    QuantumTape, QuantumTapeBatch
+]  # type : either a single QuantumTape or a Sequence of QuantumTape
 
 
 class SnowflurryQubitDevice(qml.devices.Device):
+    """Snowflurry Qubit PennyLane device for interfacing with Anyon's quantum computers.
+
+    Extends the PennyLane :class:`~.pennylane.Device` class.
+    """
+
     def __init__(
         self,
         wires=None,
         shots=None,
         seed="global",
         max_workers=None,
-        host="", 
-        user="", 
-        access_token=""
+        host="",
+        user="",
+        access_token="",
     ) -> None:
         super().__init__(wires=wires, shots=shots)
         self._max_workers = max_workers
@@ -41,24 +49,45 @@ class SnowflurryQubitDevice(qml.devices.Device):
         self.access_token = access_token
         self._debugger = None
 
-    pennylane_requires = '>=0.27.0'
+    pennylane_requires = ">=0.27.0"
 
-    name = 'Snowflurry Qubit Device'
-    short_name = 'snowflurry.qubit'
-    version = '1.0'
-    author = 'CalculQuébec'
-    observables = {"PauliX", "PauliY", "PauliZ", "Hadamard"}  # Update with supported observables
-    operations = {"CNOT", "Hadamard", "RX", "RY", "RZ",
-                "PauliX", "PauliY", "PauliZ","PhaseShift",
-                "CNOT", "CZ", "SWAP", "ISWAP", "Identity",
-                "PhaseShift","Toffoli", "U3", "T","Rot"}  # Update with supported operations
+    name = "Snowflurry Qubit Device"
+    short_name = "snowflurry.qubit"
+    version = "1.0"
+    author = "CalculQuébec"
+    observables = {
+        "PauliX",
+        "PauliY",
+        "PauliZ",
+        "Hadamard",
+    }  # Update with supported observables
+    operations = {
+        "CNOT",
+        "Hadamard",
+        "RX",
+        "RY",
+        "RZ",
+        "PauliX",
+        "PauliY",
+        "PauliZ",
+        "PhaseShift",
+        "CNOT",
+        "CZ",
+        "SWAP",
+        "ISWAP",
+        "Identity",
+        "PhaseShift",
+        "Toffoli",
+        "U3",
+        "T",
+        "Rot",
+    }  # Update with supported operations
 
-    
     @property
     def name(self):
         """The name of the device."""
         return "snowflurry.qubit"
-    
+
     def execute(
         self,
         circuits: QuantumTape_or_Batch,
@@ -77,7 +106,9 @@ class SnowflurryQubitDevice(qml.devices.Device):
 
         # Check if execution_config is an instance of ExecutionConfig
         if isinstance(execution_config, ExecutionConfig):
-            max_workers = execution_config.device_options.get("max_workers", self._max_workers)
+            max_workers = execution_config.device_options.get(
+                "max_workers", self._max_workers
+            )
             interface = (
                 execution_config.interface
                 if execution_config.gradient_method in {"backprop", None}
@@ -95,8 +126,8 @@ class SnowflurryQubitDevice(qml.devices.Device):
                     rng=self._rng,
                     debugger=self._debugger,
                     interface=interface,
-                    host=self.host, 
-                    user=self.user, 
+                    host=self.host,
+                    user=self.user,
                     access_token=self.access_token,
                 ).simulate()
                 for c in circuits
@@ -105,7 +136,9 @@ class SnowflurryQubitDevice(qml.devices.Device):
             vanilla_circuits = [convert_to_numpy_parameters(c) for c in circuits]
             seeds = self._rng.integers(2**31 - 1, size=len(vanilla_circuits))
             _wrap_simulate = partial(simulate, debugger=None, interface=interface)
-            with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=max_workers
+            ) as executor:
                 exec_map = executor.map(
                     _wrap_simulate,
                     vanilla_circuits,
