@@ -62,7 +62,7 @@ if host, user, access_token are filled, the code will be sent to Anyon's API
 """
 
 
-class PennylaneConverter:  # ??? : name is counterintuitive
+class PennylaneConverter:
     """
     supported measurements :
     counts([op, wires, all_outcomes]) arguments have no effect

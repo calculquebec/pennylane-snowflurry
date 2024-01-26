@@ -7,7 +7,7 @@ from pennylane.tape import QuantumTape, QuantumScript
 from pennylane.typing import Result, ResultBatch
 from pennylane.transforms import convert_to_numpy_parameters
 from pennylane.transforms.core import TransformProgram
-from pennylane_snowflurry.snowflurry_converter import PennylaneConverter
+from pennylane_snowflurry.pennylane_converter import PennylaneConverter
 from julia import Snowflurry  # The code to test
 from pennylane_snowflurry.execution_config import (
     ExecutionConfig,
@@ -15,7 +15,7 @@ from pennylane_snowflurry.execution_config import (
 )
 from pennylane.typing import Result, ResultBatch
 
-
+# The plugin does not support batching yet, but this is a placeholder for future implementation
 Result_or_ResultBatch = Union[Result, ResultBatch]
 QuantumTapeBatch = Sequence[QuantumTape]
 QuantumTape_or_Batch = Union[
