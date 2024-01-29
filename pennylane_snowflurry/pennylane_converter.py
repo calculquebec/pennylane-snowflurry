@@ -20,9 +20,12 @@ from pennylane.typing import TensorLike
 from typing import Callable
 from pennylane.ops import Sum, Hamiltonian
 
+# Dictionary mapping PennyLane operations to Snowflurry operations
+# The available Snowflurry operations are listed here:
+# https://snowflurrysdk.github.io/Snowflurry.jl/dev/library/quantum_toolkit.html
 # https://snowflurrysdk.github.io/Snowflurry.jl/dev/library/quantum_gates.html
+# https://snowflurrysdk.github.io/Snowflurry.jl/dev/library/quantum_circuit.html
 SNOWFLURRY_OPERATION_MAP = {
-    # native PennyLane Operators to Snowflurry
     "PauliX": "sigma_x({0})",
     "PauliY": "sigma_y({0})",
     "PauliZ": "sigma_z({0})",
@@ -53,6 +56,7 @@ SNOWFLURRY_OPERATION_MAP = {
     "T": "pi_8({0})",
     "Rot": "rotation({3},{0},{1})",  # theta, phi but no omega so we skip {2}, {3} is the wire
     "QubitUnitary": NotImplementedError,  # might correspond to apply_gate!(state::Ket, gate::Gate) from snowflurry
+    "QFT": NotImplementedError,
 }
 
 
