@@ -157,6 +157,17 @@ class PennylaneConverter:
 
         return Main.sf_circuit, False
 
+    def apply_readouts(self, wires_nb):
+        """
+        Apply readouts to all wires in the snowflurry circuit.
+
+        Args:
+            sf_circuit: The snowflurry circuit to modify.
+            wires_nb (int): The number of wires in the circuit.
+        """
+        for wire in range(wires_nb):
+            Main.eval(f"push!(sf_circuit, readout({wire + 1}, {wire + 1}))")
+
     def measure_final_state(self, circuit, sf_circuit, is_state_batched, rng):
         """
         Perform the measurements required by the circuit on the provided state.
@@ -194,6 +205,8 @@ class PennylaneConverter:
         # if measurement is a qml.counts
         if isinstance(mp, CountsMP):  # this measure can run on hardware
             if Main.currentClient is None:
+                # since we use simulate_shots, we need to add readouts to the circuit
+                self.apply_readouts(len(self.circuit.op_wires))
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                 result = dict(Counter(shots_results))
                 return result
@@ -224,6 +237,8 @@ class PennylaneConverter:
         # if measurement is a qml.sample
         if isinstance(mp, SampleMP):  # this measure can run on hardware
             if Main.currentClient is None:
+                # since we use simulate_shots, we need to add readouts to the circuit
+                self.apply_readouts(len(self.circuit.op_wires))
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                 return np.asarray(shots_results).astype(int)
             else:  # if we have a client, we try to use the real machine
