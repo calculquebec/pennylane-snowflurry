@@ -14,7 +14,7 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-    
+
 
 permissions:
   contents: read
@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
+    environment: release
 
     steps:
     - uses: actions/checkout@v3
