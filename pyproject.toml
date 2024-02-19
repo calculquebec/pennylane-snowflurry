@@ -12,7 +12,7 @@ readme = "README.md"
 maintainers = [
     { name = "Calcul Québec", email = "support@tech.alliancecan.ca" },
 ]
-license = { file = "LICENSE" }
+license = "Apache Software License (Apache License 2.0)"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -34,7 +34,6 @@ classifiers = [
 
 [project.urls]
 Source = "https://github.com/calculquebec/pennylane-snowflurry"
-homepage = "https://github.com/calculquebec/pennylane-snowflurry"
 
 [project.scripts]
 # Not sure if this is where we configure entry points

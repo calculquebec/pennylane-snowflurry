@@ -12,9 +12,9 @@ As shown in the diagram below, this plugin is used in Pennylane as a [device](ht
 
 ## Local installation
 
-This plugin is not yet available on PyPI, so you'll need to install it locally.
+This plugin is available on PyPI, but it is recommended to install it locally with the following instructions.
 
-You'll need to clone this repo and then install the dependencies with the following instructions, eighter with conda or pip.
+You'll need to clone this repo and then install the dependencies, eighter with conda or pip.
 
 ### Conda
 
