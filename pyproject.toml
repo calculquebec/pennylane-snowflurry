@@ -12,7 +12,7 @@ readme = "README.md"
 maintainers = [
     { name = "Calcul Québec", email = "support@tech.alliancecan.ca" },
 ]
-license = "Apache Software License (Apache License 2.0)"
+license = { text = "Apache Software License (Apache License 2.0)" }
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
