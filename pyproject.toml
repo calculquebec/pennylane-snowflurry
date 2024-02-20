@@ -45,3 +45,9 @@ Source = "https://github.com/calculquebec/pennylane-snowflurry"
 "snowflurry.qubit" = "pennylane_snowflurry:SnowflurryQubitDevice"
 
 [project.entry-points."pennylane.io"]
+
+[tool.setuptools]
+packages = ["pennylane_snowflurry"]
+
+[tool.setuptools.dynamic]
+version = { attr = "pennylane_snowflurry._version.__version__" }
