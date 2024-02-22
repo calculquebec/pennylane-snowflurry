@@ -1,8 +1,12 @@
 # pennylane-snowflurry
 
-This is a [PennyLane](https://pennylane.ai/) plugin allowing to use Anyon Systems' API to run quantum circuits on their quantum computer.
+The PennyLane-Snowflurry plugin provides a PennyLane device that allows the use of Anyon Systems' Snowflurry quantum computing platform with PennyLane.
 
-This package makes use of dependencies such as PyJulia and PyCall to communicate with the Julia package [Snowflurry](https://snowflurry.org/).
+[Penylane](https://pennylane.ai/) is a cross-platform Python library for quantum machine learning, automatic differentiation, and optimization of hybrid quantum-classical computations.
+
+[Snowflurry](https://snowflurry.org/) is a quantum computing framework developed in Julia by Anyon Systems and aims to provide access to quantum hardware and simulators.
+
+PennyLane-Snowflurry makes use of dependencies such as PyJulia and PyCall to allow interfacing between Python and Julia, and thus between PennyLane and Snowflurry.
 
 ## Project structure
 
@@ -12,37 +16,37 @@ As shown in the diagram below, this plugin is used in Pennylane as a [device](ht
 
 ## Local installation
 
-This plugin is available on PyPI, but it is recommended to install it locally with the following instructions.
-
-You'll need to clone this repo and then install the dependencies, eighter with conda or pip.
-
-### Conda
-
-If you happen to have a conda distribution, you can use the environment.yml file to create a conda environment with most of the dependencies already installed.
-
-Open a terminal and execute the following command:
-
-`conda env create -f environment.yml`
-
-or if you want it installed in a specific location (replace /path/to/env with the path you want):
-
-`conda env create -f environment.yml -p /path/to/env`
-
-You can then activate your environment as usual.
-
-### Python
-
-If you don't have a conda distribution, but have a python distribution, you can install the dependencies with pip.
-
-`pip install -r requirements.txt`
+Since this plugin interfaces between Python and Julia, it requires both languages to be installed on your machine. As Python is widely used amongst the quantum computing community, we assume you already have it installed. The rest of this section will guide you through the installation of Julia and the plugin.
 
 ### Julia
 
 If you don't have Julia installed, you can download it from the [official website](https://julialang.org/downloads/).
 
+### PennyLane and Snowflurry
+
+Before installing this plugin, makes sure you have a working Pennylane and Snowflurry installation.
+
+For PennyLane, please refer to the [PennyLane documentation](https://pennylane.ai/install/).
+
+For Snowflurry, please refer to the [Snowflurry documentation](https://snowflurry.org).
+
+### Plugin installation
+
+This plugin is available on PyPI, so you can install it with pip:
+
+```sh
+pip install pennylane-snowflurry
+```
+
+Alternatively, you can clone this repo and install the plugin with the following command from the root of the repo:
+
+```sh
+pip install -e .
+```
+
 ### PyJulia and PyCall
 
-PyJulia and PyCall are used to communicate between Python and Julia. At this point, PyJulia is already installed with either conda or pip, but you'll need to install PyCall in your Julia environment. To do so open a python terminal and execute the following commands:
+PyJulia and PyCall are used to communicate between Python and Julia. At this point, PyJulia should already be installed with the plugin as it is listed in the dependencies, but you'll need to install PyCall in your Julia environment. To do so open a python terminal and execute the following commands:
 
 ```py
 import julia
@@ -56,31 +60,13 @@ using Pkg
 Pkg.add("PyCall")
 ```
 
-### Plugin installation
-
-The following command will install the plugin on your computer:
-
-`pip install -e .`
-
-### PennyLane and Snowflurry
-
-After installing this plugin, makes sure you have working Snowflurry and PennyLane installations.
-
-For PennyLane, we recommend that you install the latest version with pip:
-
-`pip install git+https://github.com/PennyLaneAI/pennylane.git@master`
-
-For Snowflurry, please refer to the [Snowflurry documentation](https://snowflurry.org).
-
 ### Running files and tests
 
-To run the tests, you can use the following command from the root of the repo:
+For now, the plugin is only tested on python scripts and doesn't work in a Juptyer notebook. To run a file, you can use the following command:
 
-`python -m tests.test_pyjulia-snowflurry -v`
-
-To run the tests from a conda environment, you can use `python-jl` instead of `python`:
-
-`python-jl -m tests.test_pyjulia-snowflurry -v`
+```sh
+python-jl -m tests.test_pyjulia-snowflurry -v
+```
 
 ## Usage
 
@@ -96,6 +82,10 @@ Example if you have an API key from Anyon Systems:
 dev_def = qml.device("snowflurry.qubit", wires=1, shots=50, host="example.anyonsys.com", user="test_user",access_token="not_a_real_access_token")
 ```
 
-## State of the project
+## State of the project and known issues
 
-This plugin is still very early in its development and not thoroughly tested. expect issues.
+This plugin is still very early in its development and aims to provide a basic interface between PennyLane and Snowflurry, which are both also under active development. As such, it is expected that there will be issues and limitations.
+
+It is necessary to use the `python-jl` command to execute files, as it essentially launches Python from within Julia. This is necessary for the use of Julia packages such as Snowflurry.
+
+For the sake of simplicity, a workaround it being researched to allow the use of the plugin in a Jupyter notebook and to allow debugging in an IDE.

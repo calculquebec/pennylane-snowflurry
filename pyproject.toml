@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "pennylane-snowflurry"
 dynamic = ["version"]
 requires-python = ">=3.9"
-dependencies = ["numpy >= 1.0.0", "julia >= 0.6.0", "pennylane >= 0.30.0"]
+dependencies = ["numpy", "julia >= 0.6.0", "pennylane >= 0.30.0"]
 description = "PennyLane plugin for interfacing with Anyon's quantum computers"
 readme = "README.md"
 maintainers = [
