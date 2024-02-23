@@ -8,7 +8,6 @@ from pennylane.typing import Result, ResultBatch
 from pennylane.transforms import convert_to_numpy_parameters
 from pennylane.transforms.core import TransformProgram
 from pennylane_snowflurry.pennylane_converter import PennylaneConverter
-from julia import Snowflurry  # The code to test
 from pennylane_snowflurry.execution_config import (
     ExecutionConfig,
     DefaultExecutionConfig,

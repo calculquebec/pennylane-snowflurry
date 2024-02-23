@@ -1,4 +1,4 @@
-from julia import Snowflurry
+# from julia import Snowflurry
 from julia import Main
 import julia
 import pennylane as qml
@@ -36,7 +36,7 @@ SNOWFLURRY_OPERATION_MAP = {
     "ISWAP": "iswap({0},{1})",
     "RX": "rotation_x({1},{0})",
     "RY": "rotation_y({1},{0})",
-    "RZ": "phase_shift({1},{0})",  # NOTE : rotation_z is not implemented in snowflurry, phase_shift is the closest thing
+    "RZ": "rotation_z({1},{0})",  # NOTE : rotation_z is not implemented in snowflurry, phase_shift is the closest thing
     "Identity": "identity_gate({0})",
     "CSWAP": NotImplementedError,
     "CRX": "controlled(rotation_x({1},{0}),{1})",  # gates using controlled probably wont work, might have to do a special operations for those cases.
