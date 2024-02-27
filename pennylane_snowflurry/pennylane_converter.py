@@ -94,14 +94,15 @@ class PennylaneConverter:
         host="",
         user="",
         access_token="",
+        project_id="",
     ) -> Result:
         self.circuit = circuit
         self.rng = rng
         self.debugger = debugger
         self.interface = interface
-        if len(host) != 0 and len(user) != 0 and len(access_token) != 0:
+        if len(host) != 0 and len(user) != 0 and len(access_token) != 0 and len(project_id) != 0:
             Main.currentClient = Main.Eval(
-                "Client(host={host},user={user},access_token={access_token})"
+                "Client(host={host},user={user},access_token={access_token}, project_id={project_id})"
             )  # TODO : I think this pauses the execution, check if threading is needed
         else:
             Main.currentClient = None

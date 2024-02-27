@@ -13,6 +13,8 @@ from pennylane_snowflurry.execution_config import (
     DefaultExecutionConfig,
 )
 from pennylane.typing import Result, ResultBatch
+from ._version import __version__
+
 
 # The plugin does not support batching yet, but this is a placeholder for future implementation
 Result_or_ResultBatch = Union[Result, ResultBatch]
@@ -23,10 +25,35 @@ QuantumTape_or_Batch = Union[
 
 
 class SnowflurryQubitDevice(qml.devices.Device):
-    """Snowflurry Qubit PennyLane device for interfacing with Anyon's quantum computers.
+    """Snowflurry Qubit PennyLane device for interfacing with Anyon's quantum simulators or quantum Hardware.
+    
+    * Extends the PennyLane :class:`~.pennylane.Device` class.
+    * Snowflurry API credentials are only required for sending jobs on Anyon System's QPU. 
 
-    Extends the PennyLane :class:`~.pennylane.Device` class.
-    """
+    Args:
+        wires (int, Iterable[Number, str]): Number of wires present on the device, or iterable that
+            contains unique labels for the wires as numbers (i.e., ``[-1, 0, 2]``) or strings
+            (``['ancilla', 'q1', 'q2']``). Default ``None`` if not specified.
+        shots (int, Sequence[int], Sequence[Union[int, Sequence[int]]]): The default number of shots
+            to use in executions involving this device.
+        seed (Union[str, None, int, array_like[int], SeedSequence, BitGenerator, Generator, jax.random.PRNGKey]): A
+            seed-like parameter matching that of ``seed`` for ``numpy.random.default_rng``, or
+            a request to seed from numpy's global random number generator.
+            The default, ``seed="global"`` pulls a seed from NumPy's global generator. ``seed=None``
+            will pull a seed from the OS entropy.
+            If a ``jax.random.PRNGKey`` is passed as the seed, a JAX-specific sampling function using
+            ``jax.random.choice`` and the ``PRNGKey`` will be used for sampling rather than
+            ``numpy.random.default_rng``.
+        max_workers (int): A ``ProcessPoolExecutor`` executes tapes asynchronously
+            using a pool of at most ``max_workers`` processes. If ``max_workers`` is ``None``,
+            only the current process executes tapes. If you experience any
+            issue, say using JAX, TensorFlow, Torch, try setting ``max_workers`` to ``None``.
+        host (str): URL of the QPU server.
+        user (str): Username.
+        access_token (str): User access token.
+        project_id (str): Used to identify which project the jobs sent to this QPU belong to.
+
+    """# host, user, access_token, project_id would ideally be keyword args
 
     def __init__(
         self,
@@ -37,6 +64,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
         host="",
         user="",
         access_token="",
+        project_id="",
     ) -> None:
         super().__init__(wires=wires, shots=shots)
         self._max_workers = max_workers
@@ -46,13 +74,14 @@ class SnowflurryQubitDevice(qml.devices.Device):
         self.host = host
         self.user = user
         self.access_token = access_token
+        self.project_id = project_id
         self._debugger = None
 
-    pennylane_requires = ">=0.27.0"
+    pennylane_requires = ">=0.30.0"
 
     name = "Snowflurry Qubit Device"
     short_name = "snowflurry.qubit"
-    version = "1.0"
+    version = __version__
     author = "CalculQuébec"
     observables = {
         "PauliX",
@@ -128,6 +157,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
                     host=self.host,
                     user=self.user,
                     access_token=self.access_token,
+                    project_id=self.project_id,
                 ).simulate()
                 for c in circuits
             )
