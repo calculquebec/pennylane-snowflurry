@@ -7,6 +7,7 @@ from pennylane.tape import QuantumTape, QuantumScript
 from pennylane.typing import Result, ResultBatch
 from pennylane.transforms import convert_to_numpy_parameters
 from pennylane.transforms.core import TransformProgram
+from pennylane.devices.preprocess import decompose
 from pennylane_snowflurry.pennylane_converter import PennylaneConverter
 from pennylane_snowflurry.execution_config import (
     ExecutionConfig,
@@ -22,6 +23,19 @@ QuantumTapeBatch = Sequence[QuantumTape]
 QuantumTape_or_Batch = Union[
     QuantumTape, QuantumTapeBatch
 ]  # type : either a single QuantumTape or a Sequence of QuantumTape
+
+def stopping_condition(op: qml.operation.Operator) -> bool:
+    """Specify whether or not an Operator object is supported by the device."""
+    if op.name == "QFT" and len(op.wires) >= 6:
+        return False
+    if op.name == "GroverOperator" and len(op.wires) >= 13:
+        return False
+    if op.name == "Snapshot":
+        return True
+    if op.__class__.__name__[:3] == "Pow" and qml.operation.is_trainable(op):
+        return False
+
+    return op.has_matrix
 
 
 class SnowflurryQubitDevice(qml.devices.Device):
@@ -115,6 +129,30 @@ class SnowflurryQubitDevice(qml.devices.Device):
     def name(self):
         """The name of the device."""
         return "snowflurry.qubit"
+    
+    def preprocess(
+            self,
+            execution_config: ExecutionConfig = DefaultExecutionConfig,
+    ) -> Tuple[TransformProgram, ExecutionConfig]:
+        """This function defines the device transfrom program to be applied and an updated execution config.
+
+        Args:
+            execution_config (Union[ExecutionConfig, Sequence[ExecutionConfig]]): A data structure describing the
+            parameters needed to fully describe the execution.
+
+        Returns:
+            TransformProgram: A transform program that when called returns QuantumTapes that the device
+            can natively execute as well as a postprocessing function to be called after execution.
+            ExecutionConfig: A configuration with unset specifications filled in.
+        """
+        config = execution_config
+        transform_program = TransformProgram()
+
+        transform_program.add_transform(
+            decompose, stopping_condition=stopping_condition, name=self.name
+        )
+
+        return transform_program, config
 
     def execute(
         self,

@@ -56,7 +56,6 @@ SNOWFLURRY_OPERATION_MAP = {
     "T": "pi_8({0})",
     "Rot": "rotation({3},{0},{1})",  # theta, phi but no omega so we skip {2}, {3} is the wire
     "QubitUnitary": NotImplementedError,  # might correspond to apply_gate!(state::Ket, gate::Gate) from snowflurry
-    "QFT": NotImplementedError,
 }
 
 
