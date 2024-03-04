@@ -24,6 +24,7 @@ QuantumTape_or_Batch = Union[
     QuantumTape, QuantumTapeBatch
 ]  # type : either a single QuantumTape or a Sequence of QuantumTape
 
+
 def stopping_condition(op: qml.operation.Operator) -> bool:
     """Specify whether or not an Operator object is supported by the device."""
     if op.name == "QFT" and len(op.wires) >= 6:
@@ -40,9 +41,9 @@ def stopping_condition(op: qml.operation.Operator) -> bool:
 
 class SnowflurryQubitDevice(qml.devices.Device):
     """Snowflurry Qubit PennyLane device for interfacing with Anyon's quantum simulators or quantum Hardware.
-    
+
     * Extends the PennyLane :class:`~.pennylane.Device` class.
-    * Snowflurry API credentials are only required for sending jobs on Anyon System's QPU. 
+    * Snowflurry API credentials are only required for sending jobs on Anyon System's QPU.
 
     Args:
         wires (int, Iterable[Number, str]): Number of wires present on the device, or iterable that
@@ -67,7 +68,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
         access_token (str): User access token.
         project_id (str): Used to identify which project the jobs sent to this QPU belong to.
 
-    """# host, user, access_token, project_id would ideally be keyword args
+    """  # host, user, access_token, project_id would ideally be keyword args
 
     def __init__(
         self,
@@ -129,10 +130,10 @@ class SnowflurryQubitDevice(qml.devices.Device):
     def name(self):
         """The name of the device."""
         return "snowflurry.qubit"
-    
+
     def preprocess(
-            self,
-            execution_config: ExecutionConfig = DefaultExecutionConfig,
+        self,
+        execution_config: ExecutionConfig = DefaultExecutionConfig,
     ) -> Tuple[TransformProgram, ExecutionConfig]:
         """This function defines the device transfrom program to be applied and an updated execution config.
 
@@ -146,6 +147,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
             ExecutionConfig: A configuration with unset specifications filled in.
         """
         config = execution_config
+
         transform_program = TransformProgram()
 
         transform_program.add_transform(
