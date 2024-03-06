@@ -9,6 +9,7 @@ from pennylane.transforms import convert_to_numpy_parameters
 from pennylane.transforms.core import TransformProgram
 from pennylane.devices.preprocess import decompose
 from pennylane_snowflurry.pennylane_converter import PennylaneConverter
+from pennylane_snowflurry.pennylane_converter import SNOWFLURRY_OPERATION_MAP
 from pennylane_snowflurry.execution_config import (
     ExecutionConfig,
     DefaultExecutionConfig,
@@ -27,9 +28,9 @@ QuantumTape_or_Batch = Union[
 
 def stopping_condition(op: qml.operation.Operator) -> bool:
     """Specify whether or not an Operator object is supported by the device."""
-    if op.name == "QFT" and len(op.wires) >= 6:
+    if op.name not in SNOWFLURRY_OPERATION_MAP.keys():
         return False
-    if op.name == "GroverOperator" and len(op.wires) >= 13:
+    if op.name == "GroverOperator":
         return False
     if op.name == "Snapshot":
         return True
@@ -119,6 +120,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
         "SWAP",
         "ISWAP",
         "Identity",
+        "ControlledPhaseShift",
         "PhaseShift",
         "Toffoli",
         "U3",
