@@ -7,6 +7,7 @@ from pennylane.tape import QuantumTape, QuantumScript
 from pennylane.typing import Result, ResultBatch
 from pennylane.transforms import convert_to_numpy_parameters
 from pennylane.transforms.core import TransformProgram
+from pennylane.operation import Operator
 from pennylane.devices.preprocess import decompose
 from pennylane_snowflurry.pennylane_converter import PennylaneConverter
 from pennylane_snowflurry.pennylane_converter import SNOWFLURRY_OPERATION_MAP
@@ -27,10 +28,29 @@ QuantumTape_or_Batch = Union[
 
 
 def stopping_condition(op: qml.operation.Operator) -> bool:
-    """Specify whether or not an Operator object is supported by the device."""
+    r"""Specify whether or not an Operator object is supported by the device.
+
+      Will be used to determine whether or not to decompose an Operator object.
+
+    Args:
+        op (Operator): a PennyLane Operator object.
+
+    Returns:
+        bool: True if the Operator is supported by the device, False otherwise.
+
+    Note:
+        - MultiControlledX needs work_wires to be decomposed, so any circuit
+        containing MultiControlledX must specify work_wires in its hyperparameters.
+        This operator should eventually be mapped to a Snowflurry operation and won't
+        need to be decomposed.
+    """
     if op.name not in SNOWFLURRY_OPERATION_MAP.keys():
         return False
     if op.name == "GroverOperator":
+        return False
+    if (
+        op.name == "MultiControlledX"
+    ):  # TODO : remove this condition once MultiControlledX is supported
         return False
     if op.name == "Snapshot":
         return True
@@ -145,7 +165,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
 
         Returns:
             TransformProgram: A transform program that when called returns QuantumTapes that the device
-            can natively execute as well as a postprocessing function to be called after execution.
+            can natively execute.
             ExecutionConfig: A configuration with unset specifications filled in.
         """
         config = execution_config
