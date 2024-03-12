@@ -100,9 +100,11 @@ class PennylaneConverter:
         self.debugger = debugger
         self.interface = interface
         
-        Main.eval("host=\""+host+"\"")
-        Main.eval("user=\""+user+"\"")
-        Main.eval("access_token=\""+access_token+"\"")
+        Main.eval("using Snowflurry")
+        if len(host) != 0 and len(user) != 0 and len(access_token) != 0:
+            Main.currentClient = Main.Client(host=host, user=user, access_token=access_token)
+        else:
+            Main.currentClient = None
 
     def simulate(self):
         sf_circuit, is_state_batched = self.convert_circuit(
@@ -203,11 +205,7 @@ class PennylaneConverter:
         # if measurement is a qml.counts
         if isinstance(mp, CountsMP):  # this measure can run on hardware
             
-            host=Main.eval("host")
-            user=Main.eval("user")
-            access_token=Main.eval("access_token")
-            
-            if len(host)==0 or len(user)==0 or len(access_token)==0:
+            if Main.currentClient is None:
                 # since we use simulate_shots, we need to add readouts to the circuit
                 self.apply_readouts(len(self.circuit.op_wires))
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
@@ -216,7 +214,7 @@ class PennylaneConverter:
             else:  # if we have credentials, we try to use the real machine
                                 
                 self.apply_readouts(len(self.circuit.op_wires))
-                qpu=Main.AnyonYukonQPU(host=host, user=user, access_token=access_token)
+                qpu=Main.AnyonYukonQPU(Main.currentClient)
                 shots_results = Main.run_job(qpu, Main.transpile(Main.get_transpiler(qpu), Main.sf_circuit), shots)
                 result = dict(Counter(shots_results))
                 return shots_results                
@@ -224,12 +222,8 @@ class PennylaneConverter:
 
         # if measurement is a qml.sample
         if isinstance(mp, SampleMP):  # this measure can run on hardware
-            
-            host=Main.eval("host")
-            user=Main.eval("user")
-            access_token=Main.eval("access_token")
-            
-            if len(host)==0 or len(user)==0 or len(access_token)==0:
+                       
+            if Main.currentClient is None:
                 # since we use simulate_shots, we need to add readouts to the circuit
                 self.apply_readouts(len(self.circuit.op_wires))
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
@@ -237,7 +231,7 @@ class PennylaneConverter:
             else:  # if we have credentials, we try to use the real machine
                                 
                 self.apply_readouts(len(self.circuit.op_wires))
-                qpu=Main.AnyonYukonQPU(host=host, user=user, access_token=access_token)
+                qpu=Main.AnyonYukonQPU(Main.currentClient)
                 shots_results = Main.run_job(qpu, Main.transpile(Main.get_transpiler(qpu), Main.sf_circuit), shots)
                 result = dict(Counter(shots_results))
                 return shots_results
