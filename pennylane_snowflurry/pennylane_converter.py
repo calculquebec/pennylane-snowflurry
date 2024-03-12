@@ -130,7 +130,6 @@ class PennylaneConverter:
             Tuple[TensorLike, bool]: A tuple containing the final state of the quantum script and
                 a boolean indicating if the state has a batch dimension.
         """
-        Main.eval("using Snowflurry")
         wires_nb = len(pennylane_circuit.op_wires)
         Main.sf_circuit = Main.QuantumCircuit(qubit_count=wires_nb)
 
