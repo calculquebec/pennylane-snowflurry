@@ -100,7 +100,12 @@ class PennylaneConverter:
         self.rng = rng
         self.debugger = debugger
         self.interface = interface
-        if len(host) != 0 and len(user) != 0 and len(access_token) != 0 and len(project_id) != 0:
+        if (
+            len(host) != 0
+            and len(user) != 0
+            and len(access_token) != 0
+            and len(project_id) != 0
+        ):
             Main.currentClient = Main.Eval(
                 "Client(host={host},user={user},access_token={access_token}, project_id={project_id})"
             )  # TODO : I think this pauses the execution, check if threading is needed
@@ -154,20 +159,34 @@ class PennylaneConverter:
             else:
                 print(f"{op.name} is not supported by this device. skipping...")
 
-        Main.print(Main.sf_circuit)
-
         return Main.sf_circuit, False
 
-    def apply_readouts(self, wires_nb):
+    def apply_readouts(self, wires_nb, obs):
         """
         Apply readouts to all wires in the snowflurry circuit.
 
         Args:
-            sf_circuit: The snowflurry circuit to modify.
             wires_nb (int): The number of wires in the circuit.
+            obs (Optional[Observable]): The observable mentioned in the measurement process. If None,
+                readouts are applied to all wires because we assume the user wants to measure all wires.
         """
-        for wire in range(wires_nb):
-            Main.eval(f"push!(sf_circuit, readout({wire + 1}, {wire + 1}))")
+        if obs is None:  # if no observable is given, we apply readouts to all wires
+            for wire in range(wires_nb):
+                Main.eval(f"push!(sf_circuit, readout({wire + 1}, {wire + 1}))")
+
+        else:
+            # if an observable is given, we apply readouts to the wires mentioned in the observable,
+            # TODO : could add Pauli rotations to get the correct observable
+            self.apply_single_readout(obs.wires[0])
+
+    def apply_single_readout(self, wire):
+        """
+        Apply a readout to a single wire in the snowflurry circuit.
+
+        Args:
+            wire (int): The wire to apply the readout to.
+        """
+        Main.eval(f"push!(sf_circuit, readout({wire+1}, {wire+1}))")
 
     def measure_final_state(self, circuit, sf_circuit, is_state_batched, rng):
         """
@@ -196,18 +215,22 @@ class PennylaneConverter:
             shots = 1
 
         if len(circuit.measurements) == 1:
-            return self.measure(circuit.measurements[0], sf_circuit, shots)
+            results = self.measure(circuit.measurements[0], sf_circuit, shots)
         else:
-            return tuple(
+            results = tuple(
                 self.measure(mp, sf_circuit, shots) for mp in circuit.measurements
             )
+
+        Main.print(Main.sf_circuit)
+
+        return results
 
     def measure(self, mp: MeasurementProcess, sf_circuit, shots):
         # if measurement is a qml.counts
         if isinstance(mp, CountsMP):  # this measure can run on hardware
             if Main.currentClient is None:
                 # since we use simulate_shots, we need to add readouts to the circuit
-                self.apply_readouts(len(self.circuit.op_wires))
+                self.apply_readouts(len(self.circuit.op_wires), mp.obs)
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                 result = dict(Counter(shots_results))
                 return result
@@ -239,7 +262,7 @@ class PennylaneConverter:
         if isinstance(mp, SampleMP):  # this measure can run on hardware
             if Main.currentClient is None:
                 # since we use simulate_shots, we need to add readouts to the circuit
-                self.apply_readouts(len(self.circuit.op_wires))
+                self.apply_readouts(len(self.circuit.op_wires), mp.obs)
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                 return np.asarray(shots_results).astype(int)
             else:  # if we have a client, we try to use the real machine
@@ -292,4 +315,5 @@ class PennylaneConverter:
             # Convert the final state from pyjulia to a NumPy array
             final_state_np = np.array([element for element in Main.result_state])
             return final_state_np
+
         return NotImplementedError
