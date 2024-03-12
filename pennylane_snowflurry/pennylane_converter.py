@@ -99,12 +99,10 @@ class PennylaneConverter:
         self.rng = rng
         self.debugger = debugger
         self.interface = interface
-        if len(host) != 0 and len(user) != 0 and len(access_token) != 0:
-            Main.currentClient = Main.Eval(
-                "Client(host={host},user={user},access_token={access_token})"
-            )  # TODO : I think this pauses the execution, check if threading is needed
-        else:
-            Main.currentClient = None
+        
+        Main.eval("host=\""+host+"\"")
+        Main.eval("user=\""+user+"\"")
+        Main.eval("access_token=\""+access_token+"\"")
 
     def simulate(self):
         sf_circuit, is_state_batched = self.convert_circuit(
@@ -153,7 +151,7 @@ class PennylaneConverter:
             else:
                 print(f"{op.name} is not supported by this device. skipping...")
 
-        Main.print(Main.sf_circuit)
+        # Main.print(Main.sf_circuit)
 
         return Main.sf_circuit, False
 
@@ -204,66 +202,45 @@ class PennylaneConverter:
     def measure(self, mp: MeasurementProcess, sf_circuit, shots):
         # if measurement is a qml.counts
         if isinstance(mp, CountsMP):  # this measure can run on hardware
-            if Main.currentClient is None:
+            
+            host=Main.eval("host")
+            user=Main.eval("user")
+            access_token=Main.eval("access_token")
+            
+            if len(host)==0 or len(user)==0 or len(access_token)==0:
                 # since we use simulate_shots, we need to add readouts to the circuit
                 self.apply_readouts(len(self.circuit.op_wires))
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                 result = dict(Counter(shots_results))
                 return result
-            else:  # if we have a client, we try to use the real machine
-                # NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
-                # I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
-                # WHOEVER WORK ON THIS ON THE FUTURE, CONSIDER THIS LIKE PSEUDOCODE
-                # THE CIRCUITID WILL PROBABLY NEED TO BE RAN ON A DIFFERENT THREAD TO NOT STALL THE EXECUTION,
-                # YOU CAN MAKE IT STALL IF THE REQUIREMENTS ALLOWS IT
-                circuitID = Main.submit_circuit(
-                    Main.currentClient, Main.sf_circuit, shots
-                )
-                status = Main.get_status(circuitID)
-                while (
-                    status != "succeeded"
-                ):  # it won't be "succeeded", need to check what Main.get_status return
-                    print(f"checking for status for circuit id {circuitID}")
-                    time.sleep(1)
-                    status = Main.get_status(circuitID)
-                    print(f"current status : {status}")
-                    if (
-                        status == "failed"
-                    ):  # it won't be "failed", need to check what Main.get_status return
-                        break
-                if status == "succeeded":
-                    return Main.get_result(circuitID)
+            else:  # if we have credentials, we try to use the real machine
+                                
+                self.apply_readouts(len(self.circuit.op_wires))
+                qpu=Main.AnyonYukonQPU(host=host, user=user, access_token=access_token)
+                shots_results = Main.run_job(qpu, Main.transpile(Main.get_transpiler(qpu), Main.sf_circuit), shots)
+                result = dict(Counter(shots_results))
+                return shots_results                
+
 
         # if measurement is a qml.sample
         if isinstance(mp, SampleMP):  # this measure can run on hardware
-            if Main.currentClient is None:
+            
+            host=Main.eval("host")
+            user=Main.eval("user")
+            access_token=Main.eval("access_token")
+            
+            if len(host)==0 or len(user)==0 or len(access_token)==0:
                 # since we use simulate_shots, we need to add readouts to the circuit
                 self.apply_readouts(len(self.circuit.op_wires))
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                 return np.asarray(shots_results).astype(int)
-            else:  # if we have a client, we try to use the real machine
-                # NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
-                # I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
-                # WHOEVER WORK ON THIS ON THE FUTURE, CONSIDER THIS LIKE PSEUDOCODE
-                # THE CIRCUITID WILL PROBABLY NEED TO BE RAN ON A DIFFERENT THREAD TO NOT STALL THE EXECUTION,
-                # YOU CAN MAKE IT STALL IF THE REQUIREMENTS ALLOWS IT
-                circuitID = Main.submit_circuit(
-                    Main.currentClient, Main.sf_circuit, shots
-                )
-                status = Main.get_status(circuitID)
-                while (
-                    status != "succeeded"
-                ):  # it won't be "succeeded", need to check what Main.get_status return
-                    print(f"checking for status for circuit id {circuitID}")
-                    time.sleep(1)
-                    status = Main.get_status(circuitID)
-                    print(f"current status : {status}")
-                    if (
-                        status == "failed"
-                    ):  # it won't be "failed", need to check what Main.get_status return
-                        break
-                if status == "succeeded":
-                    return Main.get_result(circuitID)
+            else:  # if we have credentials, we try to use the real machine
+                                
+                self.apply_readouts(len(self.circuit.op_wires))
+                qpu=Main.AnyonYukonQPU(host=host, user=user, access_token=access_token)
+                shots_results = Main.run_job(qpu, Main.transpile(Main.get_transpiler(qpu), Main.sf_circuit), shots)
+                result = dict(Counter(shots_results))
+                return shots_results
 
         # if measurement is a qml.probs
         if isinstance(mp, ProbabilityMP):
