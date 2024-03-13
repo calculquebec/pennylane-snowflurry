@@ -2,7 +2,7 @@
 
 The PennyLane-Snowflurry plugin provides a PennyLane device that allows the use of Anyon Systems' Snowflurry quantum computing platform with PennyLane.
 
-[Penylane](https://pennylane.ai/) is a cross-platform Python library for quantum machine learning, automatic differentiation, and optimization of hybrid quantum-classical computations.
+[Pennylane](https://pennylane.ai/) is a cross-platform Python library for quantum machine learning, automatic differentiation, and optimization of hybrid quantum-classical computations.
 
 [Snowflurry](https://snowflurry.org/) is a quantum computing framework developed in Julia by Anyon Systems and aims to provide access to quantum hardware and simulators.
 
