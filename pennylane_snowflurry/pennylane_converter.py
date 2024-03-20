@@ -16,6 +16,7 @@ from pennylane.measurements import (
     CountsMP,
 )
 import time
+import re
 from pennylane.typing import TensorLike
 from typing import Callable
 from pennylane.ops import Sum, Hamiltonian
@@ -154,7 +155,6 @@ class PennylaneConverter:
                     continue
                 parameters = op.parameters + [i + 1 for i in op.wires.tolist()]
                 gate = SNOWFLURRY_OPERATION_MAP[op.name].format(*parameters)
-                print(f"placed {gate}")
                 Main.eval(f"push!(sf_circuit,{gate})")
             else:
                 print(f"{op.name} is not supported by this device. skipping...")
@@ -170,6 +170,10 @@ class PennylaneConverter:
             obs (Optional[Observable]): The observable mentioned in the measurement process. If None,
                 readouts are applied to all wires because we assume the user wants to measure all wires.
         """
+        # print(Main.sf_circuit.instructions)
+        # print(self.get_circuit_as_dictionary())
+        # TODO : remove these print statement when feature is done
+
         if obs is None:  # if no observable is given, we apply readouts to all wires
             for wire in range(wires_nb):
                 Main.eval(f"push!(sf_circuit, readout({wire + 1}, {wire + 1}))")
@@ -179,6 +183,80 @@ class PennylaneConverter:
             # TODO : could add Pauli rotations to get the correct observable
             self.apply_single_readout(obs.wires[0])
 
+    def get_circuit_as_dictionary(self):
+        """
+        Take the the snowflurry QuantumCircuit.instruction and convert it to an array of operations.
+        When instruction is called from Snowflurry, PyCall returns a jlwrap object which is not easily
+        iterable. This function is used to convert the jlwrap object to a Python dictionary.
+
+        Returns:
+            Dict [str, [int]]: A dictionary containing the operations and an array of the wires they are
+                applied to.
+
+        Example:
+            >>> Main.sf_circuit.instructions
+            [<PyCall.jlwrap Gate Object: Snowflurry.Hadamard
+            Connected_qubits        : [1]
+            Operator:
+            (2, 2)-element Snowflurry.DenseOperator:
+            Underlying data ComplexF64:
+            0.7071067811865475 + 0.0im    0.7071067811865475 + 0.0im
+            0.7071067811865475 + 0.0im    -0.7071067811865475 + 0.0im
+            >, <PyCall.jlwrap Gate Object: Snowflurry.ControlX
+            Connected_qubits        : [2, 1]
+            Operator:
+            (4, 4)-element Snowflurry.DenseOperator:
+            Underlying data ComplexF64:
+            1.0 + 0.0im    0.0 + 0.0im    0.0 + 0.0im    0.0 + 0.0im
+            0.0 + 0.0im    1.0 + 0.0im    0.0 + 0.0im    0.0 + 0.0im
+            0.0 + 0.0im    0.0 + 0.0im    0.0 + 0.0im    1.0 + 0.0im
+            0.0 + 0.0im    0.0 + 0.0im    1.0 + 0.0im    0.0 + 0.0im
+            >, <PyCall.jlwrap Explicit Readout object:
+            connected_qubit: 1
+            destination_bit: 1
+            >]
+
+            Becomes:
+            [{'gate': 'Snowflurry.Hadamard', 'connected_qubits': [1]},
+            {'gate': 'Snowflurry.ControlX', 'connected_qubits': [1, 2]},
+            {'gate': 'Readout', 'connected_qubits': [1]}]
+
+
+        """
+        ops = []
+        instructions = Main.sf_circuit.instructions  # instructions is a jlwrap object
+
+        for inst in instructions:
+
+            gate_str = str(inst)  # convert the jlwrap object to a string
+
+            try:
+                if "Gate Object" in gate_str:
+                    # if the gate is a Gate object, we extract the name and the connected qubits
+                    # from the string with a regex
+                    gate_name = re.search(
+                        r"Gate Object: (.*)\nConnected_qubits", gate_str
+                    ).group(1)
+                    op_data = {
+                        "gate": gate_name,
+                        "connected_qubits": list(inst.connected_qubits),
+                    }
+                if "Readout" in gate_str:
+                    # if the gate is a Readout object, we extract the connected qubit from the string
+                    gate_name = "Readout"
+                    op_data = {
+                        "gate": gate_name,
+                        "connected_qubits": [inst.connected_qubit],
+                    }
+                # NOTE : attribute for the Gate object is connected_qubits (plural)
+                # while the attribute for the Readout object is connected_qubit (singular)
+
+            except:
+                print(f"Error while parsing {gate_str}")
+            ops.append(op_data)
+
+        return ops
+
     def apply_single_readout(self, wire):
         """
         Apply a readout to a single wire in the snowflurry circuit.
@@ -186,6 +264,16 @@ class PennylaneConverter:
         Args:
             wire (int): The wire to apply the readout to.
         """
+        ops = self.get_circuit_as_dictionary()
+
+        for op in ops:
+            # if a readout is already applied to the wire, we don't apply another one
+            if op["gate"] == "Readout":
+                if op["connected_qubits"] == wire - 1:  # wire is 1-indexed in Julia
+                    return
+
+        # if no readout is applied to the wire, we apply one while taking into account that
+        # the wire number is 1-indexed in Julia
         Main.eval(f"push!(sf_circuit, readout({wire+1}, {wire+1}))")
 
     def measure_final_state(self, circuit, sf_circuit, is_state_batched, rng):
