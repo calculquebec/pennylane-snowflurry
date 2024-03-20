@@ -272,6 +272,10 @@ class PennylaneConverter:
                 if op["connected_qubits"] == wire - 1:  # wire is 1-indexed in Julia
                     return
 
+        # TODO : Make the above for loop a booleab function to check if a readout is already applied
+        # will come in handy when measurement process asking for all wires to be measured is combined
+        # with a measurement process asking for a single wire to be measured
+
         # if no readout is applied to the wire, we apply one while taking into account that
         # the wire number is 1-indexed in Julia
         Main.eval(f"push!(sf_circuit, readout({wire+1}, {wire+1}))")
