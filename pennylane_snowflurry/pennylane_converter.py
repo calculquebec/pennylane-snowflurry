@@ -270,45 +270,16 @@ class PennylaneConverter:
                 return True
         return False
 
-    def build_instructions_vector(self, ops):
-        """
-        Build the instructions vector from the operations dictionary.
-
-        Args:
-            ops (List[Dict[str, Any]]): A list of operations dictionaries.
-
-        Returns:
-            List[Union[Gate, Readout]]: A list of Gate and Readout objects.
-        """
-        Main.instructionsVector = Main.Vector
-        for op in ops:
-            if op["gate"] == "Readout":
-                instructions.append(Main.Readout(op["connected_qubits"]))
-            else:
-                instructions.append(Main.eval(op["gate"]))
-        return instructions
-
     def remove_readouts(self):
         """
-        Returns a copy of the snowflurry circuit with all readouts removed.
+        Remove all readouts from the snowflurry circuit with pop!() function.
 
-        Returns:
-            QuantumCircuit: A copy of the snowflurry circuit with all readouts removed.
         """
-        # Maniuplate the instructions dictionary to remove the readouts
-        ops = self.get_circuit_as_dictionary()
-        new_ops = [op for op in ops if op["gate"] != "Readout"]
-
-        # Build the new circuit with the instructions vector
-        qubit_count = Main.sf_circuit.qubit_count
-        bit_count = Main.sf_circuit.bit_count
-        new_circuit = Main.QuantumCircuit(
-            qubit_count=qubit_count,
-            bit_count=bit_count,
-            instructions=Main.sf_circuit.instructions,
-        )
-        print(new_circuit.instructions)
-        return new_circuit
+        # TODO : eventually, removing the readouts could be done by making a copy
+        # of the instructions vector and removing the readouts from it before
+        # contructing a new QuantumCircuit with that vector.
+        while self.has_readout():
+            Main.eval("pop!(sf_circuit)")
 
     def apply_single_readout(self, wire):
         """
@@ -324,10 +295,6 @@ class PennylaneConverter:
             if op["gate"] == "Readout":
                 if op["connected_qubits"] == wire - 1:  # wire is 1-indexed in Julia
                     return
-
-        # TODO : Make the above for loop a boolean function to check if a readout is already applied
-        # will come in handy when measurement process asking for all wires to be measured is combined
-        # with a measurement process asking for a single wire to be measured
 
         # if no readout is applied to the wire, we apply one while taking into account that
         # the wire number is 1-indexed in Julia
@@ -436,6 +403,7 @@ class PennylaneConverter:
 
         # if measurement is a qml.probs
         if isinstance(mp, ProbabilityMP):
+            self.remove_readouts()
             wires_list = mp.wires.tolist()
             if len(wires_list) == 0:
                 return Main.get_measurement_probabilities(Main.sf_circuit)
@@ -446,7 +414,8 @@ class PennylaneConverter:
 
         # if measurement is a qml.expval
         if isinstance(mp, ExpectationMP):
-            Main.result_state = Main.simulate(sf_circuit)
+            self.remove_readouts()
+            Main.result_state = Main.simulate(Main.sf_circuit)
             if mp.obs is not None and mp.obs.has_matrix:
                 print(type(mp.obs))
                 observable_matrix = qml.matrix(mp.obs)
@@ -456,9 +425,8 @@ class PennylaneConverter:
 
         # if measurement is a qml.state
         if isinstance(mp, StateMeasurement):
-            if self.has_readout():
-                sf_circuit = self.remove_readouts()
-            Main.result_state = Main.simulate(sf_circuit)
+            self.remove_readouts()
+            Main.result_state = Main.simulate(Main.sf_circuit)
             # Convert the final state from pyjulia to a NumPy array
             final_state_np = np.array([element for element in Main.result_state])
             return final_state_np
