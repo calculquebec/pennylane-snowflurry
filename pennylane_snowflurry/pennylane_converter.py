@@ -185,7 +185,7 @@ class PennylaneConverter:
 
     def get_circuit_as_dictionary(self):
         """
-        Take the the snowflurry QuantumCircuit.instruction and convert it to an array of operations.
+        Take the snowflurry QuantumCircuit.instructions and convert it to an array of operations.
         When instruction is called from Snowflurry, PyCall returns a jlwrap object which is not easily
         iterable. This function is used to convert the jlwrap object to a Python dictionary.
 
@@ -257,6 +257,59 @@ class PennylaneConverter:
 
         return ops
 
+    def has_readout(self) -> bool:
+        """
+        Check if a readout is applied on any of the wires in the snowflurry circuit.
+
+        Returns:
+            bool: True if a readout is applied, False otherwise.
+        """
+        ops = self.get_circuit_as_dictionary()
+        for op in ops:
+            if op["gate"] == "Readout":
+                return True
+        return False
+
+    def build_instructions_vector(self, ops):
+        """
+        Build the instructions vector from the operations dictionary.
+
+        Args:
+            ops (List[Dict[str, Any]]): A list of operations dictionaries.
+
+        Returns:
+            List[Union[Gate, Readout]]: A list of Gate and Readout objects.
+        """
+        Main.instructionsVector = Main.Vector
+        for op in ops:
+            if op["gate"] == "Readout":
+                instructions.append(Main.Readout(op["connected_qubits"]))
+            else:
+                instructions.append(Main.eval(op["gate"]))
+        return instructions
+
+    def remove_readouts(self):
+        """
+        Returns a copy of the snowflurry circuit with all readouts removed.
+
+        Returns:
+            QuantumCircuit: A copy of the snowflurry circuit with all readouts removed.
+        """
+        # Maniuplate the instructions dictionary to remove the readouts
+        ops = self.get_circuit_as_dictionary()
+        new_ops = [op for op in ops if op["gate"] != "Readout"]
+
+        # Build the new circuit with the instructions vector
+        qubit_count = Main.sf_circuit.qubit_count
+        bit_count = Main.sf_circuit.bit_count
+        new_circuit = Main.QuantumCircuit(
+            qubit_count=qubit_count,
+            bit_count=bit_count,
+            instructions=Main.sf_circuit.instructions,
+        )
+        print(new_circuit.instructions)
+        return new_circuit
+
     def apply_single_readout(self, wire):
         """
         Apply a readout to a single wire in the snowflurry circuit.
@@ -272,7 +325,7 @@ class PennylaneConverter:
                 if op["connected_qubits"] == wire - 1:  # wire is 1-indexed in Julia
                     return
 
-        # TODO : Make the above for loop a booleab function to check if a readout is already applied
+        # TODO : Make the above for loop a boolean function to check if a readout is already applied
         # will come in handy when measurement process asking for all wires to be measured is combined
         # with a measurement process asking for a single wire to be measured
 
@@ -403,6 +456,8 @@ class PennylaneConverter:
 
         # if measurement is a qml.state
         if isinstance(mp, StateMeasurement):
+            if self.has_readout():
+                sf_circuit = self.remove_readouts()
             Main.result_state = Main.simulate(sf_circuit)
             # Convert the final state from pyjulia to a NumPy array
             final_state_np = np.array([element for element in Main.result_state])
