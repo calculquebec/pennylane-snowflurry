@@ -170,9 +170,6 @@ class PennylaneConverter:
             obs (Optional[Observable]): The observable mentioned in the measurement process. If None,
                 readouts are applied to all wires because we assume the user wants to measure all wires.
         """
-        # print(Main.sf_circuit.instructions)
-        # print(self.get_circuit_as_dictionary())
-        # TODO : remove these print statement when feature is done
 
         if obs is None:  # if no observable is given, we apply readouts to all wires
             for wire in range(wires_nb):
@@ -275,7 +272,7 @@ class PennylaneConverter:
         Remove all readouts from the snowflurry circuit with pop!() function.
 
         """
-        # TODO : eventually, removing the readouts could be done by making a copy
+        # RFE : eventually, removing the readouts could be done by making a copy
         # of the instructions vector and removing the readouts from it before
         # contructing a new QuantumCircuit with that vector.
         while self.has_readout():
