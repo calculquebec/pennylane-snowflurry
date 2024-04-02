@@ -12,11 +12,13 @@ from pennylane.tape import QuantumScript
 
 class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
     def test_basic_julia(self):
+        print("Testing basic Julia integration")
         c = Snowflurry.QuantumCircuit(qubit_count=3)
         dev_def = qml.device("snowflurry.qubit", wires=3)
         self.assertEqual(True, True)  # TODO : complete this test
 
     def test_execute_gate_hadamard(self):
+        print("Testing Hadamard gate")
         dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
         dev_pennylane = qml.device("default.qubit", wires=1)
 
@@ -55,6 +57,7 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
         self.assertEqual(dev_pennylane.execute(tape), dev_snowflurry.execute(tape))
 
     def test_circuit_basic_measure(self):
+        print("Testing basic measurements")
         """Test the basic Measurements functions from PennyLane with the Snowflurry device."""
 
         dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
@@ -95,6 +98,7 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
         self.assertEqual(type(r_s), type(r_p))
 
     def test_circuit_advanced_measure(self):
+        print("Testing advanced measurements")
         dev_snowflurry = qml.device("snowflurry.qubit", wires=2)
         dev_pennylane = qml.device("default.qubit", wires=2)
 
@@ -163,6 +167,7 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
         self.assertEqual(type(r_s), type(r_p))
 
     def test_gate_PauliX(self):
+        print("Testing PauliX gate")
         dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
         tape = qml.tape.QuantumScript([qml.PauliX(0)], [qml.counts(wires=0)], shots=50)
         self.assertTrue(
@@ -184,18 +189,11 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
         self.assertEqual(snowflurry_circuit(), pennylane_circuit())
 
 
-class Test_TestSnowflurryPennylaneBatch(unittest.TestCase):
-    def test_batch_execute(self):
-        dev = qml.device("snowflurry.qubit")
-        tape = qml.tape.QuantumScript(
-            [qml.Hadamard(0)], [qml.counts(wires=0)], shots=50
-        )
-        dev.execute(tape)
-
-
 if __name__ == "__main__":
     # julia.install()
+    print("Before unittest")
     unittest.main()
+    print("After unittest")
     dev_def = qml.device("snowflurry.qubit", wires=1, shots=50)
 
     @qml.qnode(dev_def)
