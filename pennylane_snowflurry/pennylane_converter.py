@@ -89,8 +89,8 @@ class PennylaneConverter:
     ###################################
     # Class attributes used for logic #
     ###################################
-    snowflurry_Readout_name = "Readout"
-    snowflurry_GateObject_name = "Gate Object"
+    snowflurry_readout_name = "Readout"
+    snowflurry_gate_object_name = "Gate Object"
 
     # Pattern is found in PyCall.jlwrap object of Snowflurry.QuantumCircuit.instructions
     snowflurry_str_search_pattern = r"Gate Object: (.*)\nConnected_qubits"
@@ -247,7 +247,7 @@ class PennylaneConverter:
             gate_str = str(inst)  # convert the jlwrap object to a string
 
             try:
-                if self.snowflurry_GateObject_name in gate_str:
+                if self.snowflurry_gate_object_name in gate_str:
                     # if the gate is a Gate object, we extract the name and the connected qubits
                     # from the string with a regex
                     gate_name = re.search(
@@ -257,9 +257,9 @@ class PennylaneConverter:
                         "gate": gate_name,
                         "connected_qubits": list(inst.connected_qubits),
                     }
-                if self.snowflurry_Readout_name in gate_str:
+                if self.snowflurry_readout_name in gate_str:
                     # if the gate is a Readout object, we extract the connected qubit from the string
-                    gate_name = self.snowflurry_Readout_name
+                    gate_name = self.snowflurry_readout_name
                     op_data = {
                         "gate": gate_name,
                         "connected_qubits": [inst.connected_qubit],
@@ -282,7 +282,7 @@ class PennylaneConverter:
         """
         ops = self.get_circuit_as_dictionary()
         for op in ops:
-            if op["gate"] == self.snowflurry_Readout_name:
+            if op["gate"] == self.snowflurry_readout_name:
                 return True
         return False
 
@@ -308,7 +308,7 @@ class PennylaneConverter:
 
         for op in ops:
             # if a readout is already applied to the wire, we don't apply another one
-            if op["gate"] == self.snowflurry_Readout_name:
+            if op["gate"] == self.snowflurry_readout_name:
                 if op["connected_qubits"] == wire - 1:  # wire is 1-indexed in Julia
                     return
 
