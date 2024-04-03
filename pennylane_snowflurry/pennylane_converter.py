@@ -86,6 +86,19 @@ class PennylaneConverter:
     shadow_expval(H[, k, seed])
     """
 
+    ###################################
+    # Class attributes used for logic #
+    ###################################
+    snowflurry_Readout_name = "Readout"
+    snowflurry_GateObject_name = "Gate Object"
+
+    # Pattern is found in PyCall.jlwrap object of Snowflurry.QuantumCircuit.instructions
+    snowflurry_str_search_pattern = r"Gate Object: (.*)\nConnected_qubits"
+
+    #################
+    # Class methods #
+    #################
+
     def __init__(
         self,
         circuit: qml.tape.QuantumScript,
@@ -97,10 +110,14 @@ class PennylaneConverter:
         access_token="",
         project_id="",
     ) -> Result:
+
+        # Instance attributes related to PennyLane
         self.circuit = circuit
         self.rng = rng
         self.debugger = debugger
         self.interface = interface
+
+        # Instance attributes related to Snowflurry
         if (
             len(host) != 0
             and len(user) != 0
@@ -222,25 +239,27 @@ class PennylaneConverter:
         """
         ops = []
         instructions = Main.sf_circuit.instructions  # instructions is a jlwrap object
+        gate_str = ""
+        gate_name = ""
 
         for inst in instructions:
 
             gate_str = str(inst)  # convert the jlwrap object to a string
 
             try:
-                if "Gate Object" in gate_str:
+                if self.snowflurry_GateObject_name in gate_str:
                     # if the gate is a Gate object, we extract the name and the connected qubits
                     # from the string with a regex
                     gate_name = re.search(
-                        r"Gate Object: (.*)\nConnected_qubits", gate_str
+                        self.snowflurry_str_search_pattern, gate_str
                     ).group(1)
                     op_data = {
                         "gate": gate_name,
                         "connected_qubits": list(inst.connected_qubits),
                     }
-                if "Readout" in gate_str:
+                if self.snowflurry_Readout_name in gate_str:
                     # if the gate is a Readout object, we extract the connected qubit from the string
-                    gate_name = "Readout"
+                    gate_name = self.snowflurry_Readout_name
                     op_data = {
                         "gate": gate_name,
                         "connected_qubits": [inst.connected_qubit],
@@ -263,7 +282,7 @@ class PennylaneConverter:
         """
         ops = self.get_circuit_as_dictionary()
         for op in ops:
-            if op["gate"] == "Readout":
+            if op["gate"] == self.snowflurry_Readout_name:
                 return True
         return False
 
@@ -289,7 +308,7 @@ class PennylaneConverter:
 
         for op in ops:
             # if a readout is already applied to the wire, we don't apply another one
-            if op["gate"] == "Readout":
+            if op["gate"] == self.snowflurry_Readout_name:
                 if op["connected_qubits"] == wire - 1:  # wire is 1-indexed in Julia
                     return
 
@@ -339,6 +358,7 @@ class PennylaneConverter:
         if isinstance(mp, CountsMP):  # this measure can run on hardware
             if Main.currentClient is None:
                 # since we use simulate_shots, we need to add readouts to the circuit
+                self.remove_readouts()
                 self.apply_readouts(len(self.circuit.op_wires), mp.obs)
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                 result = dict(Counter(shots_results))
@@ -371,6 +391,7 @@ class PennylaneConverter:
         if isinstance(mp, SampleMP):  # this measure can run on hardware
             if Main.currentClient is None:
                 # since we use simulate_shots, we need to add readouts to the circuit
+                self.remove_readouts()
                 self.apply_readouts(len(self.circuit.op_wires), mp.obs)
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                 return np.asarray(shots_results).astype(int)
