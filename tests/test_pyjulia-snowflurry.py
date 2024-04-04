@@ -1,91 +1,44 @@
-# from snowflurry_device import SnowflurryQubitDevice
-from pennylane_snowflurry import SnowflurryQubitDevice
-from julia import Snowflurry
-from julia import Base
-from julia import Main
-import julia
 import pennylane as qml
 import unittest
-import numpy as np
+from pennylane import numpy as np
 from pennylane.tape import QuantumScript
+from julia import Snowflurry
 
 
-class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
-    def test_basic_julia(self):
-        print("Testing basic Julia integration")
-        c = Snowflurry.QuantumCircuit(qubit_count=3)
-        dev_def = qml.device("snowflurry.qubit", wires=3)
-        self.assertEqual(True, True)  # TODO : complete this test
+class TestMeasurements(unittest.TestCase):
 
-    def test_execute_gate_hadamard(self):
-        print("Testing Hadamard gate")
-        dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
-        dev_pennylane = qml.device("default.qubit", wires=1)
-
-        tape_pennylane = qml.tape.QuantumScript(
-            [qml.Hadamard(0)], [qml.counts(wires=0)], shots=1
-        )
-        tape_snowflurry = qml.tape.QuantumScript(
-            [qml.Hadamard(0)], [qml.counts(wires=0)]
-        )
-
-        self.assertEqual(
-            type(dev_pennylane.execute(tape_pennylane)),
-            type(dev_snowflurry.execute(tape_snowflurry)),
-            "Hadamard gate, singular shot error",
-        )
-
-        tape = qml.tape.QuantumScript(
-            [qml.Hadamard(0)], [qml.counts(wires=0)], shots=50
-        )
-        results = dev_snowflurry.execute(tape)
-
-        self.assertEqual(
-            type(dev_pennylane.execute(tape)),
-            type(results),
-            "Hadamard gate, multiple shots errors",
-        )
-
-        self.assertTrue(
-            abs(results["0"] - results["1"]) < 10, "Hadamard gate, statistical error"
-        )
-        tape = qml.tape.QuantumTape([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
-
-        self.assertEqual(dev_pennylane.execute(tape), dev_snowflurry.execute(tape))
-
-        tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
-        self.assertEqual(dev_pennylane.execute(tape), dev_snowflurry.execute(tape))
+    def setUp(self):
+        self.dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
+        self.dev_pennylane = qml.device("default.qubit", wires=1)
 
     def test_circuit_basic_measure(self):
-        print("Testing basic measurements")
         """Test the basic Measurements functions from PennyLane with the Snowflurry device."""
 
-        dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
-        dev_pennylane = qml.device("default.qubit", wires=1)
+        print("Testing basic measurements")
 
         def circuit_state():
             qml.Hadamard(0)
             return qml.state()
 
-        r_s = qml.QNode(circuit_state, dev_snowflurry)
-        r_p = qml.QNode(circuit_state, dev_pennylane)
+        r_s = qml.QNode(circuit_state, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_state, self.dev_pennylane)
         self.assertEqual(type(r_s), type(r_p))
 
-        @qml.qnode(dev_snowflurry)
+        @qml.qnode(self.dev_snowflurry)
         def circuit_expval():
             qml.Hadamard(0)
             return qml.expval(qml.PauliZ(0))
 
-        r_s = qml.QNode(circuit_expval, dev_snowflurry)
-        r_p = qml.QNode(circuit_expval, dev_pennylane)
+        r_s = qml.QNode(circuit_expval, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_expval, self.dev_pennylane)
         self.assertEqual(type(r_s), type(r_p))
 
         def circuit_counts():
             qml.Hadamard(0)
             return qml.counts(qml.PauliY(0))
 
-        r_s = qml.QNode(circuit_counts, dev_snowflurry)
-        r_p = qml.QNode(circuit_counts, dev_pennylane)
+        r_s = qml.QNode(circuit_counts, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_counts, self.dev_pennylane)
         self.assertEqual(type(r_s), type(r_p))
         self.assertEqual(type(r_s), type(r_p))
 
@@ -93,45 +46,45 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
             qml.Hadamard(0)
             return qml.probs(wires=[0])
 
-        r_s = qml.QNode(circuit_probs, dev_snowflurry)
-        r_p = qml.QNode(circuit_probs, dev_pennylane)
+        r_s = qml.QNode(circuit_probs, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_probs, self.dev_pennylane)
         self.assertEqual(type(r_s), type(r_p))
 
     def test_circuit_advanced_measure(self):
         print("Testing advanced measurements")
-        dev_snowflurry = qml.device("snowflurry.qubit", wires=2)
-        dev_pennylane = qml.device("default.qubit", wires=2)
+        self.dev_snowflurry = qml.device("snowflurry.qubit", wires=2)
+        self.dev_pennylane = qml.device("default.qubit", wires=2)
 
         def circuit_density_matrix():
             qml.Hadamard(0)
             return qml.density_matrix([0])
 
-        r_s = qml.QNode(circuit_density_matrix, dev_snowflurry)
-        r_p = qml.QNode(circuit_density_matrix, dev_pennylane)
+        r_s = qml.QNode(circuit_density_matrix, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_density_matrix, self.dev_pennylane)
         self.assertEqual(type(r_s), type(r_p))
 
         def circuit_var():
             qml.Hadamard(0)
             return qml.var(qml.PauliY(0))
 
-        r_s = qml.QNode(circuit_var, dev_snowflurry)
-        r_p = qml.QNode(circuit_var, dev_pennylane)
+        r_s = qml.QNode(circuit_var, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_var, self.dev_pennylane)
 
         def circuit_purity():
             qml.Hadamard(0)
             qml.Hadamard(1)
             return qml.purity(wires=[0, 1])
 
-        r_s = qml.QNode(circuit_purity, dev_snowflurry)
-        r_p = qml.QNode(circuit_purity, dev_pennylane)
+        r_s = qml.QNode(circuit_purity, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_purity, self.dev_pennylane)
         self.assertEqual(type(r_s), type(r_p))
 
         def circuit_vn_entropy():
             qml.Hadamard(0)
             return qml.vn_entropy(wires=[0])
 
-        r_s = qml.QNode(circuit_vn_entropy, dev_snowflurry)
-        r_p = qml.QNode(circuit_vn_entropy, dev_pennylane)
+        r_s = qml.QNode(circuit_vn_entropy, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_vn_entropy, self.dev_pennylane)
         self.assertEqual(type(r_s), type(r_p))
 
         def circuit_mutual_info():
@@ -139,8 +92,8 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
             qml.Hadamard(1)
             return qml.mutual_info(wires0=[0], wires1=[1])
 
-        r_s = qml.QNode(circuit_mutual_info, dev_snowflurry)
-        r_p = qml.QNode(circuit_mutual_info, dev_pennylane)
+        r_s = qml.QNode(circuit_mutual_info, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_mutual_info, self.dev_pennylane)
         self.assertEqual(type(r_s), type(r_p))
 
         def circuit_classical_shadow():
@@ -148,8 +101,8 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
             qml.Hadamard(1)
             return qml.classical_shadow(wires=[0, 1])
 
-        r_s = qml.QNode(circuit_classical_shadow, dev_snowflurry)
-        r_p = qml.QNode(circuit_classical_shadow, dev_pennylane)
+        r_s = qml.QNode(circuit_classical_shadow, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_classical_shadow, self.dev_pennylane)
         self.assertEqual(type(r_s), type(r_p))
 
         def circuit_shadow_expval():
@@ -162,26 +115,76 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
                 )
             )
 
-        r_s = qml.QNode(circuit_shadow_expval, dev_snowflurry)
-        r_p = qml.QNode(circuit_shadow_expval, dev_pennylane)
+        r_s = qml.QNode(circuit_shadow_expval, self.dev_snowflurry)
+        r_p = qml.QNode(circuit_shadow_expval, self.dev_pennylane)
         self.assertEqual(type(r_s), type(r_p))
+
+
+class TestPyJulia(unittest.TestCase):
+    def test_basic_julia(self):
+        print("Testing basic Julia integration")
+        c = Snowflurry.QuantumCircuit(qubit_count=3)  # TODO : import Snowflurry
+        dev_def = qml.device("snowflurry.qubit", wires=3)
+        self.assertEqual(True, True)  # TODO : complete this test
+
+
+class TestNativeOperations(unittest.TestCase):
+
+    def setUp(self):
+        self.dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
+        self.dev_pennylane = qml.device("default.qubit", wires=1)
+
+    def test_execute_gate_hadamard(self):
+        print("Testing Hadamard gate")
+
+        tape_pennylane = QuantumScript(
+            [qml.Hadamard(0)], [qml.counts(wires=0)], shots=1
+        )
+        tape_snowflurry = QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)])
+
+        self.assertEqual(
+            type(self.dev_pennylane.execute(tape_pennylane)),
+            type(self.dev_snowflurry.execute(tape_snowflurry)),
+            "Hadamard gate, singular shot error",
+        )
+
+        tape = QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=50)
+        results = self.dev_snowflurry.execute(tape)
+
+        self.assertEqual(
+            type(self.dev_pennylane.execute(tape)),
+            type(results),
+            "Hadamard gate, multiple shots errors",
+        )
+
+        self.assertTrue(
+            abs(results["0"] - results["1"]) < 10, "Hadamard gate, statistical error"
+        )
+        tape = qml.tape.QuantumTape([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
+
+        self.assertEqual(
+            self.dev_pennylane.execute(tape), self.dev_snowflurry.execute(tape)
+        )
+
+        tape = QuantumScript([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
+        self.assertEqual(
+            self.dev_pennylane.execute(tape), self.dev_snowflurry.execute(tape)
+        )
 
     def test_gate_PauliX(self):
         print("Testing PauliX gate")
-        dev_snowflurry = qml.device("snowflurry.qubit", wires=1)
-        tape = qml.tape.QuantumScript([qml.PauliX(0)], [qml.counts(wires=0)], shots=50)
+        tape = QuantumScript([qml.PauliX(0)], [qml.counts(wires=0)], shots=50)
         self.assertTrue(
-            dev_snowflurry.execute(tape)["1"] == 50, "PauliX gate, statistical error"
+            self.dev_snowflurry.execute(tape)["1"] == 50,
+            "PauliX gate, statistical error",
         )
 
-        @qml.qnode(dev_snowflurry)
+        @qml.qnode(self.dev_snowflurry)
         def snowflurry_circuit():
             qml.PauliX(0)
             return qml.expval(qml.PauliZ(0))
 
-        dev_pennylane = qml.device("default.qubit", wires=1)
-
-        @qml.qnode(dev_pennylane)
+        @qml.qnode(self.dev_pennylane)
         def pennylane_circuit():
             qml.PauliX(0)
             return qml.expval(qml.PauliZ(0))
@@ -190,47 +193,5 @@ class Test_TestSnowflurryPennylaneIntegration(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # julia.install()
-    print("Before unittest")
+
     unittest.main()
-    print("After unittest")
-    dev_def = qml.device("snowflurry.qubit", wires=1, shots=50)
-
-    @qml.qnode(dev_def)
-    def testfunc():
-        qml.PauliX(0)
-        return qml.state()
-
-    dev1 = qml.device("default.qubit", wires=1, shots=50)
-
-    @qml.qnode(dev1)
-    def testfunc2():
-        qml.PauliX(0)
-        return qml.state()
-
-    # tape = qml.tape.QuantumTape([qml.Hadamard(0)],[qml.expval(qml.PauliZ(0))])
-    # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)])
-    # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.counts(wires=0)], shots=1)
-    # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.expval(qml.PauliZ(0))])
-    # print(f"results : {dev1.execute(tape)}")
-    # print(f"results : {dev_def.execute(tape)}")
-    # tape = qml.tape.QuantumScript([qml.Hadamard(0),qml.Hadamard(1)], [qml.counts(wires=[0,1])], shots=50)
-    # new_dev = qml.device("snowflurry.qubit", wires=1)
-    # results = new_dev.execute(tape)
-    # print(f"results : {dev1.execute(tape)}")
-    # print(f"results : {results}")
-    # tape = qml.tape.QuantumScript([qml.Hadamard(0)], [qml.state()])
-    # print(f"results : {dev1.execute(tape)}")
-    # print(f"results : {dev_def.execute(tape)}")
-    @qml.qnode(dev1)
-    def circ1():
-        qml.RX(0.5, 0)
-        return qml.probs()
-
-    @qml.qnode(dev_def)
-    def circ2():
-        qml.RX(0.5, 0)
-        return qml.probs()
-
-    print(f"results : {circ1()}")
-    print(f"results : {circ2()}")
