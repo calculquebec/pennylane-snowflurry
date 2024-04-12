@@ -13,6 +13,9 @@
 # limitations under the License.
 """
 Contains the :class:`ExecutionConfig` data class.
+
+This module has not been modified from the original Pennylane source.
+
 """
 from dataclasses import dataclass
 from typing import Optional
@@ -99,7 +102,10 @@ class ExecutionConfig:
         if self.gradient_keyword_arguments is None:
             self.gradient_keyword_arguments = {}
 
-        if any(arg not in SUPPORTED_GRADIENT_KWARGS for arg in self.gradient_keyword_arguments):
+        if any(
+            arg not in SUPPORTED_GRADIENT_KWARGS
+            for arg in self.gradient_keyword_arguments
+        ):
             raise ValueError(
                 f"All gradient_keyword_arguments keys must be in {SUPPORTED_GRADIENT_KWARGS}, got unexpected values: {set(self.gradient_keyword_arguments) - set(SUPPORTED_GRADIENT_KWARGS)}"
             )

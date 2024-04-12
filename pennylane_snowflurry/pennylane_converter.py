@@ -37,13 +37,14 @@ SNOWFLURRY_OPERATION_MAP = {
     "ISWAP": "iswap({0},{1})",
     "RX": "rotation_x({1},{0})",
     "RY": "rotation_y({1},{0})",
-    "RZ": "rotation_z({1},{0})",  # NOTE : rotation_z is not implemented in snowflurry, phase_shift is the closest thing
+    "RZ": "rotation_z({1},{0})",
     "Identity": "identity_gate({0})",
     "CSWAP": NotImplementedError,
-    "CRX": "controlled(rotation_x({1},{0}),{1})",  # gates using controlled probably wont work, might have to do a special operations for those cases.
-    "CRY": NotImplementedError,
-    "CRZ": NotImplementedError,
+    "CRX": "controlled(rotation_x({1},{0}),[{2}])",
+    "CRY": "controlled(rotation_y({1},{0}),[{2}])",
+    "CRZ": "controlled(rotation_z({1},{0}),[{2}])",
     "PhaseShift": "phase_shift({1},{0})",
+    "ControlledPhaseShift": "controlled(phase_shift({1},{0}),[{2}])",
     "QubitStateVector": NotImplementedError,
     "StatePrep": NotImplementedError,
     "Toffoli": "toffoli({0},{1},{2})",  # order might be wrong on that one
@@ -57,7 +58,6 @@ SNOWFLURRY_OPERATION_MAP = {
     "T": "pi_8({0})",
     "Rot": "rotation({3},{0},{1})",  # theta, phi but no omega so we skip {2}, {3} is the wire
     "QubitUnitary": NotImplementedError,  # might correspond to apply_gate!(state::Ket, gate::Gate) from snowflurry
-    "QFT": NotImplementedError,
 }
 
 
@@ -116,8 +116,8 @@ class PennylaneConverter:
         self.rng = rng
         self.debugger = debugger
         self.interface = interface
-
-        # Instance attributes related to Snowflurry
+        
+        #Instance attributes related to Snowflurry
         if (
             len(host) != 0
             and len(user) != 0

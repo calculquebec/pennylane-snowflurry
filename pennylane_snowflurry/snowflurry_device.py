@@ -7,7 +7,10 @@ from pennylane.tape import QuantumTape, QuantumScript
 from pennylane.typing import Result, ResultBatch
 from pennylane.transforms import convert_to_numpy_parameters
 from pennylane.transforms.core import TransformProgram
+from pennylane.operation import Operator
+from pennylane.devices.preprocess import decompose
 from pennylane_snowflurry.pennylane_converter import PennylaneConverter
+from pennylane_snowflurry.pennylane_converter import SNOWFLURRY_OPERATION_MAP
 from pennylane_snowflurry.execution_config import (
     ExecutionConfig,
     DefaultExecutionConfig,
@@ -24,11 +27,44 @@ QuantumTape_or_Batch = Union[
 ]  # type : either a single QuantumTape or a Sequence of QuantumTape
 
 
+def stopping_condition(op: qml.operation.Operator) -> bool:
+    r"""Specify whether or not an Operator object is supported by the device.
+
+      Will be used to determine whether or not to decompose an Operator object.
+
+    Args:
+        op (Operator): a PennyLane Operator object.
+
+    Returns:
+        bool: True if the Operator is supported by the device, False otherwise.
+
+    Note:
+        - MultiControlledX needs work_wires to be decomposed, so any circuit
+        containing MultiControlledX must specify work_wires in its hyperparameters.
+        This operator should eventually be mapped to a Snowflurry operation and won't
+        need to be decomposed.
+    """
+    if op.name not in SNOWFLURRY_OPERATION_MAP.keys():
+        return False
+    if op.name == "GroverOperator":
+        return False
+    if (
+        op.name == "MultiControlledX"
+    ):  # TODO : remove this condition once MultiControlledX is supported
+        return False
+    if op.name == "Snapshot":
+        return True
+    if op.__class__.__name__[:3] == "Pow" and qml.operation.is_trainable(op):
+        return False
+
+    return op.has_matrix
+
+
 class SnowflurryQubitDevice(qml.devices.Device):
     """Snowflurry Qubit PennyLane device for interfacing with Anyon's quantum simulators or quantum Hardware.
-    
+
     * Extends the PennyLane :class:`~.pennylane.Device` class.
-    * Snowflurry API credentials are only required for sending jobs on Anyon System's QPU. 
+    * Snowflurry API credentials are only required for sending jobs on Anyon System's QPU.
 
     Args:
         wires (int, Iterable[Number, str]): Number of wires present on the device, or iterable that
@@ -53,7 +89,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
         access_token (str): User access token.
         project_id (str): Used to identify which project the jobs sent to this QPU belong to.
 
-    """# host, user, access_token, project_id would ideally be keyword args
+    """  # host, user, access_token, project_id would ideally be keyword args
 
     def __init__(
         self,
@@ -104,6 +140,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
         "SWAP",
         "ISWAP",
         "Identity",
+        "ControlledPhaseShift",
         "PhaseShift",
         "Toffoli",
         "U3",
@@ -115,6 +152,31 @@ class SnowflurryQubitDevice(qml.devices.Device):
     def name(self):
         """The name of the device."""
         return "snowflurry.qubit"
+
+    def preprocess(
+        self,
+        execution_config: ExecutionConfig = DefaultExecutionConfig,
+    ) -> Tuple[TransformProgram, ExecutionConfig]:
+        """This function defines the device transfrom program to be applied and an updated execution config.
+
+        Args:
+            execution_config (Union[ExecutionConfig, Sequence[ExecutionConfig]]): A data structure describing the
+            parameters needed to fully describe the execution.
+
+        Returns:
+            TransformProgram: A transform program that when called returns QuantumTapes that the device
+            can natively execute.
+            ExecutionConfig: A configuration with unset specifications filled in.
+        """
+        config = execution_config
+
+        transform_program = TransformProgram()
+
+        transform_program.add_transform(
+            decompose, stopping_condition=stopping_condition, name=self.name
+        )
+
+        return transform_program, config
 
     def execute(
         self,
