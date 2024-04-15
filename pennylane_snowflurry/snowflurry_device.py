@@ -125,28 +125,14 @@ class SnowflurryQubitDevice(qml.devices.Device):
         "PauliZ",
         "Hadamard",
     }  # Update with supported observables
+
+    # Define the supported operations by making a python set of the keys from the SNOWFLURRY_OPERATION_MAP dictionary
+    # Ignores keys with value "NotImplementedError"
     operations = {
-        "CNOT",
-        "Hadamard",
-        "RX",
-        "RY",
-        "RZ",
-        "PauliX",
-        "PauliY",
-        "PauliZ",
-        "PhaseShift",
-        "CNOT",
-        "CZ",
-        "SWAP",
-        "ISWAP",
-        "Identity",
-        "ControlledPhaseShift",
-        "PhaseShift",
-        "Toffoli",
-        "U3",
-        "T",
-        "Rot",
-    }  # Update with supported operations
+        key
+        for key, value in SNOWFLURRY_OPERATION_MAP.items()
+        if value != NotImplementedError
+    }
 
     @property
     def name(self):
