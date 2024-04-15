@@ -70,21 +70,10 @@ if host, user, access_token are filled, the code will be sent to Anyon's API
 
 class PennylaneConverter:
     """
-    supported measurements :
-    counts([op, wires, all_outcomes]) arguments have no effect
-    expval(op)
-    state()
-    sample([op, wires]) arguments have no effect
-    probs([wires, op]) arguments have no effect
+    A PennyLane converter for the Snowflurry device.
 
-    currently not supported measurements :
-    var(op)
-    density_matrix(wires)
-    vn_entropy(wires[, log_base])
-    mutual_info(wires0, wires1[, log_base])
-    purity(wires)
-    classical_shadow(wires[, seed])
-    shadow_expval(H[, k, seed])
+    Is in charge of interfacing with the Snowflurry.jl package and converting PennyLane circuits to
+    Snowflurry circuits.
     """
 
     ###################################
@@ -356,6 +345,26 @@ class PennylaneConverter:
         return results
 
     def measure(self, mp: MeasurementProcess, sf_circuit, shots):
+        """
+        Measure the quantum state using the provided measurement process.
+
+        Args:
+            mp (MeasurementProcess): The measurement process to perform
+            sf_circuit : The snowflurry circuit used
+            shots (int): The number of shots
+
+        Returns:
+            result: The measurement result TODO : type needs to be unified
+
+        Currently supported measurements :
+            - counts(works with Snowflurry.simulate_shots)
+            - sample(works with Snowflurry.simulate_shots)
+            - probs(works with Snowflurry.get_measurement_probabilities)
+            - expval(works with Snowflurry.simulate and Snowflurry.expected_value)
+            - state(works with Snowflurry.simulate and Snowflurry.result_state)
+
+        """
+
         # if measurement is a qml.counts
         if isinstance(mp, CountsMP):  # this measure can run on hardware
             if Main.currentClient is None:
