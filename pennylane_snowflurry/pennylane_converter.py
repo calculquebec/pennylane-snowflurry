@@ -32,6 +32,7 @@ SNOWFLURRY_OPERATION_MAP = {
     "PauliZ": "sigma_z({0})",
     "Hadamard": "hadamard({0})",
     "CNOT": "control_x({0},{1})",
+    "CY": "controlled(sigma_y({1}),[{0}])",  # 0 is the control qubit, 1 is the target qubit
     "CZ": "control_z({0},{1})",
     "SWAP": "swap({0},{1})",
     "ISWAP": "iswap({0},{1})",
@@ -39,15 +40,15 @@ SNOWFLURRY_OPERATION_MAP = {
     "RY": "rotation_y({1},{0})",
     "RZ": "rotation_z({1},{0})",
     "Identity": "identity_gate({0})",
-    "CSWAP": NotImplementedError,
-    "CRX": "controlled(rotation_x({2},{0}),[{1}])",
+    "CSWAP": "controlled(swap({1},{2}),[{0}])",  # 0 is the control qubit, 1 and 2 are the target qubits
+    "CRX": "controlled(rotation_x({2},{0}),[{1}])",  # 0 is the angle, 1 is the control qubit, 2 is the target qubit
     "CRY": "controlled(rotation_y({2},{0}),[{1}])",
     "CRZ": "controlled(rotation_z({2},{0}),[{1}])",
-    "PhaseShift": "phase_shift({1},{0})",
-    "ControlledPhaseShift": "controlled(phase_shift({2},{0}),[{1}])",
+    "PhaseShift": "phase_shift({1},{0})",  # 0 is the angle, 1 is the wire
+    "ControlledPhaseShift": "controlled(phase_shift({2},{0}),[{1}])",  # 0 is the angle, 1 is the control qubit, 2 is the target qubit
     "QubitStateVector": NotImplementedError,
     "StatePrep": NotImplementedError,
-    "Toffoli": "toffoli({0},{1},{2})",  # order might be wrong on that one
+    "Toffoli": "toffoli({0},{1},{2})",
     "QubitUnitary": NotImplementedError,
     "U1": NotImplementedError,
     "U2": NotImplementedError,
