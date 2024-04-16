@@ -65,6 +65,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
 
     * Extends the PennyLane :class:`~.pennylane.Device` class.
     * Snowflurry API credentials are only required for sending jobs on Anyon System's QPU.
+    * Batching is not supported yet.
 
     Args:
         wires (int, Iterable[Number, str]): Number of wires present on the device, or iterable that
@@ -127,7 +128,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
     }  # Update with supported observables
 
     # Define the supported operations by making a python set of the keys from the SNOWFLURRY_OPERATION_MAP dictionary
-    # Ignores keys with value "NotImplementedError"
+    # Ignore keys with value "NotImplementedError"
     operations = {
         key
         for key, value in SNOWFLURRY_OPERATION_MAP.items()
@@ -169,6 +170,16 @@ class SnowflurryQubitDevice(qml.devices.Device):
         circuits: QuantumTape_or_Batch,
         execution_config: ExecutionConfig = DefaultExecutionConfig,
     ) -> Result_or_ResultBatch:
+        """
+        Execute a batch of quantum circuits or a single circuit on the device.
+
+        Args:
+            circuits (QuantumTape or Sequence[QuantumTape]): a single quantum circuit or a batch of quantum circuits to execute.
+            execution_config (ExecutionConfig): a data structure describing the parameters needed to fully describe the execution.
+
+        Returns:
+            Result (tuple): a single result if a single circuit is executed, or a tuple of results if a batch of circuits is executed.
+        """
         is_single_circuit = False
         if isinstance(circuits, QuantumScript):
             is_single_circuit = True
