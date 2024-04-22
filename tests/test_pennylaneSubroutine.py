@@ -42,15 +42,30 @@ class TestPennylaneSubroutine(unittest.TestCase):
         self.assertTrue(np.allclose(result_pennylane, result_snowflurry))
 
     def test_BasisState(self):
-        """Test the BasisState subroutine."""
+        """Test the BasisState subroutine.
+
+        FIXME : Qubits that do not have any gates applied are just not represented in the state vector.
+        Therefore, as long as all qubits are acted upon after initialization, the state vector will
+        should be completely defined.
+        """
         print("Testing BasisState subroutine")
 
-        def circuit_BasisState():
-            qml.BasisState(np.array([1, 0, 1, 0, 0]), wires=[0, 1, 2, 3, 4])
+        def circuit_BasisState_all_ones():
+            qml.BasisState(np.array([1, 1, 1, 1, 1]), wires=[0, 1, 2, 3, 4])
             return qml.state()
 
-        pennylane_qnode = qml.QNode(circuit_BasisState, self.dev_pennylane)
-        snowflurry_qnode = qml.QNode(circuit_BasisState, self.dev_snowflurry)
+        pennylane_qnode = qml.QNode(circuit_BasisState_all_ones, self.dev_pennylane)
+        snowflurry_qnode = qml.QNode(circuit_BasisState_all_ones, self.dev_snowflurry)
+        result_pennylane = pennylane_qnode()
+        result_snowflurry = snowflurry_qnode()
+        self.assertTrue(np.allclose(result_pennylane, result_snowflurry))
+
+        def circuit_BasisState_all_zeros():
+            qml.BasisState(np.array([0, 0, 0, 0, 0]), wires=[0, 1, 2, 3, 4])
+            return qml.state()
+
+        pennylane_qnode = qml.QNode(circuit_BasisState_all_zeros, self.dev_pennylane)
+        snowflurry_qnode = qml.QNode(circuit_BasisState_all_zeros, self.dev_snowflurry)
         result_pennylane = pennylane_qnode()
         result_snowflurry = snowflurry_qnode()
         self.assertTrue(np.allclose(result_pennylane, result_snowflurry))
