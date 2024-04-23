@@ -20,7 +20,7 @@ This module has not been modified from the original Pennylane source.
 from dataclasses import dataclass
 from typing import Optional
 
-from pennylane.interfaces import SUPPORTED_INTERFACES
+from pennylane.workflow import SUPPORTED_INTERFACES
 from pennylane.gradients import SUPPORTED_GRADIENT_KWARGS
 
 SUPPORTED_GRADIENT_METHODS = [
