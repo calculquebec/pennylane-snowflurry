@@ -35,9 +35,6 @@ classifiers = [
 [project.urls]
 Source = "https://github.com/calculquebec/pennylane-snowflurry"
 
-[project.scripts]
-# Not sure if this is where we configure entry points
-
 [project.optional-dependencies]
 # No optional dependencies yet
 
