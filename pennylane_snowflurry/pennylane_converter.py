@@ -47,7 +47,7 @@ SNOWFLURRY_OPERATION_MAP = {
     "PhaseShift": "phase_shift({1},{0})",  # 0 is the angle, 1 is the wire
     "ControlledPhaseShift": "controlled(phase_shift({2},{0}),[{1}])",  # 0 is the angle, 1 is the control qubit, 2 is the target qubit
     "Toffoli": "toffoli({0},{1},{2})",
-    "U3": "universal({3},{0},{1},{2})",
+    "U3": "universal({3},{0},{1},{2})", # 3 is the wire, 0,1,2 are theta, phi, delta respectively
     "T": "pi_8({0})",
     "Rot": "rotation({3},{0},{1})",  # theta, phi but no omega so we skip {2}, {3} is the wire
 }
