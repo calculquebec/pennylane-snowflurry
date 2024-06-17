@@ -20,7 +20,9 @@ Since this plugin interfaces between Python and Julia, it requires both language
 
 ### Julia
 
-If you don't have Julia installed, you can download it from the [official website](https://julialang.org/downloads/).
+If you don't have Julia installed, you can download it from the [official website](https://julialang.org/downloads/). It is highly recommended to install using the installer file, as it will ask to add Julia to the system's environment variables.
+
+**To ensure this correct configuration, during the installation process, the checkbox `Add Julia to PATH` must be checked.**
 
 ### PennyLane and Snowflurry
 
@@ -60,12 +62,12 @@ using Pkg
 Pkg.add("PyCall")
 ```
 
-### Running files and tests
+### Running files
 
-For now, the plugin is only tested on python scripts and doesn't work in a Juptyer notebook. To run a file, you can use the following command:
+The plugin can be used both in python scripts and Jupyter notebooks. To run a script, you can use the following command:
 
 ```sh
-python-jl -m tests.test_pyjulia-snowflurry -v
+python base_circuit.py
 ```
 
 ## Usage
@@ -86,6 +88,6 @@ dev_def = qml.device("snowflurry.qubit", wires=1, shots=50, host="example.anyons
 
 This plugin is still very early in its development and aims to provide a basic interface between PennyLane and Snowflurry, which are both also under active development. As such, it is expected that there will be issues and limitations.
 
-It is necessary to use the `python-jl` command to execute files, as it essentially launches Python from within Julia. This is necessary for the use of Julia packages such as Snowflurry.
+### Future plans
 
-For the sake of simplicity, a workaround it being researched to allow the use of the plugin in a Jupyter notebook and to allow debugging in an IDE.
+- Add a test suite to ensure the plugin works as expected.
