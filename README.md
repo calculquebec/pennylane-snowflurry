@@ -20,7 +20,9 @@ Since this plugin interfaces between Python and Julia, it requires both language
 
 ### Julia
 
-If you don't have Julia installed, you can download it from the [official website](https://julialang.org/downloads/). It is highly recommended to install using the installer file, as it will automatically add Julia to environment variables.
+If you don't have Julia installed, you can download it from the [official website](https://julialang.org/downloads/). It is highly recommended to install using the installer file, as it will ask to add Julia to the system's environment variables.
+
+**To ensure this correct configuration, during the installation process, the checkbox `Add Julia to PATH` must be checked.**
 
 ### PennyLane and Snowflurry
 
