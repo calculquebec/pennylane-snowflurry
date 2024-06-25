@@ -102,6 +102,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
         user="",
         access_token="",
         project_id="",
+        realm=""
     ) -> None:
         super().__init__(wires=wires, shots=shots)
         self._max_workers = max_workers
@@ -112,6 +113,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
         self.user = user
         self.access_token = access_token
         self.project_id = project_id
+        self.realm=realm
         self._debugger = None
 
     pennylane_requires = ">=0.30.0"
@@ -217,6 +219,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
                     user=self.user,
                     access_token=self.access_token,
                     project_id=self.project_id,
+                    realm=self.realm
                 ).simulate()
                 for c in circuits
             )
