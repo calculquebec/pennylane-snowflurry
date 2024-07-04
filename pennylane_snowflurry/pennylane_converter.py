@@ -45,7 +45,7 @@ SNOWFLURRY_OPERATION_MAP = {
     "PhaseShift": "phase_shift({1},{0})",  # 0 is the angle, 1 is the wire
     "ControlledPhaseShift": "controlled(phase_shift({2},{0}),[{1}])",  # 0 is the angle, 1 is the control qubit, 2 is the target qubit
     "Toffoli": "toffoli({0},{1},{2})",
-    "U3": "universal({3},{0},{1},{2})", # 3 is the wire, 0,1,2 are theta, phi, delta respectively
+    "U3": "universal({3},{0},{1},{2})",  # 3 is the wire, 0,1,2 are theta, phi, delta respectively
     "T": "pi_8({0})",
     "Rot": "rotation({3},{0},{1})",  # theta, phi but no omega so we skip {2}, {3} is the wire
 }
@@ -80,8 +80,6 @@ class PennylaneConverter:
     Snowflurry = newmodule("Snowflurry")
     Snowflurry.seval("using Snowflurry")
 
-
-
     #################
     # Class methods #
     #################
@@ -96,6 +94,7 @@ class PennylaneConverter:
         user="",
         access_token="",
         project_id="",
+        realm="",
     ) -> Result:
 
         # Instance attributes related to PennyLane
@@ -105,15 +104,18 @@ class PennylaneConverter:
         self.interface = interface
 
         # Instance attributes related to Snowflurry
+        Main.eval("using Snowflurry")
         if (
             len(host) != 0
             and len(user) != 0
             and len(access_token) != 0
             and len(project_id) != 0
+            and len(realm) != 0
         ):
-            Main.currentClient = Main.Eval(
-                "Client(host={host},user={user},access_token={access_token}, project_id={project_id})"
-            )  # TODO : I think this pauses the execution, check if threading is needed
+            Main.currentClient = Main.Client(
+                host=host, user=user, access_token=access_token, realm=realm
+            )
+            Main.eval('project_id="' + project_id + '"')
         else:
             Main.currentClient = None
 
@@ -141,7 +143,7 @@ class PennylaneConverter:
             Tuple[TensorLike, bool]: A tuple containing the final state of the quantum script and
                 a boolean indicating if the state has a batch dimension.
         """
-        
+
         wires_nb = len(pennylane_circuit.op_wires)
         Main.sf_circuit = self.Snowflurry.QuantumCircuit(qubit_count=wires_nb)
 
@@ -337,8 +339,6 @@ class PennylaneConverter:
                 self.measure(mp, sf_circuit, shots) for mp in circuit.measurements
             )
 
-        Main.print(Main.sf_circuit)
-
         return results
 
     def measure(self, mp: MeasurementProcess, sf_circuit, shots):
@@ -371,29 +371,16 @@ class PennylaneConverter:
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                 result = dict(Counter(shots_results))
                 return result
-            else:  # if we have a client, we try to use the real machine
-                # NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
-                # I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
-                # WHOEVER WORK ON THIS ON THE FUTURE, CONSIDER THIS LIKE PSEUDOCODE
-                # THE CIRCUITID WILL PROBABLY NEED TO BE RAN ON A DIFFERENT THREAD TO NOT STALL THE EXECUTION,
-                # YOU CAN MAKE IT STALL IF THE REQUIREMENTS ALLOWS IT
-                circuitID = Main.submit_circuit(
-                    Main.currentClient, Main.sf_circuit, shots
+            else:  # if we have a client, we use the real machine
+                self.apply_readouts(len(self.circuit.op_wires), mp.obs)
+                qpu = Main.AnyonYukonQPU(Main.currentClient, Main.eval("project_id"))
+                shots_results = Main.run_job(
+                    qpu,
+                    Main.transpile(Main.get_transpiler(qpu), Main.sf_circuit),
+                    shots,
                 )
-                status = Main.get_status(circuitID)
-                while (
-                    status != "succeeded"
-                ):  # it won't be "succeeded", need to check what Main.get_status return
-                    print(f"checking for status for circuit id {circuitID}")
-                    time.sleep(1)
-                    status = Main.get_status(circuitID)
-                    print(f"current status : {status}")
-                    if (
-                        status == "failed"
-                    ):  # it won't be "failed", need to check what Main.get_status return
-                        break
-                if status == "succeeded":
-                    return Main.get_result(circuitID)
+                result = dict(Counter(shots_results))
+                return result
 
         # if measurement is a qml.sample
         if isinstance(mp, SampleMP):  # this measure can run on hardware
@@ -403,29 +390,18 @@ class PennylaneConverter:
                 self.apply_readouts(len(self.circuit.op_wires), mp.obs)
                 shots_results = Main.simulate_shots(Main.sf_circuit, shots)
                 return np.asarray(shots_results).astype(int)
-            else:  # if we have a client, we try to use the real machine
-                # NOTE : THE FOLLOWING WILL VERY LIKELY NOT WORK AS IT WAS NOT TESTED
-                # I DID NOT RECEIVE THE AUTHENTICATION INFORMATION IN TIME TO TEST IT.
-                # WHOEVER WORK ON THIS ON THE FUTURE, CONSIDER THIS LIKE PSEUDOCODE
-                # THE CIRCUITID WILL PROBABLY NEED TO BE RAN ON A DIFFERENT THREAD TO NOT STALL THE EXECUTION,
-                # YOU CAN MAKE IT STALL IF THE REQUIREMENTS ALLOWS IT
-                circuitID = Main.submit_circuit(
-                    Main.currentClient, Main.sf_circuit, shots
+            else:  # if we have a client, we use the real machine
+                self.apply_readouts(len(self.circuit.op_wires), mp.obs)
+                qpu = Main.AnyonYukonQPU(Main.currentClient, Main.eval("project_id"))
+                shots_results = Main.run_job(
+                    qpu,
+                    Main.transpile(Main.get_transpiler(qpu), Main.sf_circuit),
+                    shots,
                 )
-                status = Main.get_status(circuitID)
-                while (
-                    status != "succeeded"
-                ):  # it won't be "succeeded", need to check what Main.get_status return
-                    print(f"checking for status for circuit id {circuitID}")
-                    time.sleep(1)
-                    status = Main.get_status(circuitID)
-                    print(f"current status : {status}")
-                    if (
-                        status == "failed"
-                    ):  # it won't be "failed", need to check what Main.get_status return
-                        break
-                if status == "succeeded":
-                    return Main.get_result(circuitID)
+                return np.repeat(
+                    [int(key) for key in shots_results.keys()],
+                    [value for value in shots_results.values()],
+                )
 
         # if measurement is a qml.probs
         if isinstance(mp, ProbabilityMP):
