@@ -1,6 +1,4 @@
-# from julia import Snowflurry
-from julia import Main
-import julia
+from juliacall import Main, newmodule
 import pennylane as qml
 from pennylane.tape import QuantumTape
 from pennylane.typing import Result, ResultBatch
@@ -76,6 +74,14 @@ class PennylaneConverter:
     # Pattern is found in PyCall.jlwrap object of Snowflurry.QuantumCircuit.instructions
     snowflurry_str_search_pattern = r"Gate Object: (.*)\n"
 
+    ##########################################
+    # Class attributes related to Snowflurry #
+    ##########################################
+    Snowflurry = newmodule("Snowflurry")
+    Snowflurry.seval("using Snowflurry")
+
+
+
     #################
     # Class methods #
     #################
@@ -135,9 +141,9 @@ class PennylaneConverter:
             Tuple[TensorLike, bool]: A tuple containing the final state of the quantum script and
                 a boolean indicating if the state has a batch dimension.
         """
-        Main.eval("using Snowflurry")
+        
         wires_nb = len(pennylane_circuit.op_wires)
-        Main.sf_circuit = Main.QuantumCircuit(qubit_count=wires_nb)
+        Main.sf_circuit = self.Snowflurry.QuantumCircuit(qubit_count=wires_nb)
 
         prep = None
         if len(pennylane_circuit) > 0 and isinstance(
