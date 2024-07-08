@@ -1,6 +1,6 @@
 from juliacall import Main, newmodule
 import pennylane as qml
-from pennylane.tape import QuantumTape
+from pennylane.tape import QuantumTape, QuantumScript
 from pennylane.typing import Result, ResultBatch
 import numpy as np
 from collections import Counter
@@ -86,8 +86,7 @@ class PennylaneConverter:
 
     def __init__(
         self,
-        circuit: qml.tape.QuantumScript,
-        rng=None,
+        pennylane_circuit: QuantumTape,
         debugger=None,
         interface=None,
         host="",
@@ -98,13 +97,12 @@ class PennylaneConverter:
     ) -> Result:
 
         # Instance attributes related to PennyLane
-        self.circuit = circuit
-        self.rng = rng
+        self.pennylane_circuit = pennylane_circuit
         self.debugger = debugger
         self.interface = interface
 
         # Instance attributes related to Snowflurry
-        self.sf_circuit = None
+        self.snowflurry_py_circuit = None
         if (
             len(host) != 0
             and len(user) != 0
@@ -120,13 +118,13 @@ class PennylaneConverter:
             Snowflurry.currentClient = None
 
     def simulate(self):
-        self.sf_circuit, is_state_batched = self.convert_circuit(
-            self.circuit, debugger=self.debugger, interface=self.interface
+        self.snowflurry_py_circuit = self.convert_circuit(
+            self.pennylane_circuit, debugger=self.debugger, interface=self.interface
         )
-        return self.measure_final_state(is_state_batched, self.rng)
+        return self.measure_final_state()
 
     def convert_circuit(
-        self, pennylane_circuit: qml.tape.QuantumScript, debugger=None, interface=None
+        self, pennylane_circuit: QuantumTape, debugger=None, interface=None
     ):
         """
         Convert the received pennylane circuit into a snowflurry device in julia.
@@ -142,7 +140,7 @@ class PennylaneConverter:
                 a boolean indicating if the state has a batch dimension.
         """
 
-        wires_nb = len(pennylane_circuit.op_wires)
+        wires_nb = len(pennylane_circuit.wires)
         Snowflurry.sf_circuit = Snowflurry.QuantumCircuit(qubit_count=wires_nb)
 
         prep = None
@@ -163,7 +161,7 @@ class PennylaneConverter:
             else:
                 print(f"{op.name} is not supported by this device. skipping...")
 
-        return Snowflurry.sf_circuit, False
+        return Snowflurry.sf_circuit
 
     def apply_readouts(self, wires_nb, obs):
         """
@@ -306,19 +304,16 @@ class PennylaneConverter:
         # the wire number is 1-indexed in Julia
         Snowflurry.seval(f"push!(sf_circuit, readout({wire+1}, {wire+1}))")
 
-    def measure_final_state(self, is_state_batched, rng):
+    def measure_final_state(self):
         """
         Perform the measurements required by the circuit on the provided state.
 
         This is an internal function that will be called by the successor to ``default.qubit``.
 
         Args:
-            circuit (.QuantumScript): The single circuit to simulate
+            circuit (.QuantumTape): The single circuit to simulate
             sf_circuit : The snowflurry circuit used
             is_state_batched (bool): Whether the state has a batch dimension or not.
-            rng (Union[None, int, array_like[int], SeedSequence, BitGenerator, Generator]): A
-                seed-like parameter matching that of ``seed`` for ``numpy.random.default_rng``.
-                If no value is provided, a default RNG will be used.
 
         Returns:
             Tuple[TensorLike]: The measurement results
@@ -327,16 +322,19 @@ class PennylaneConverter:
         # it can return ShotCopies with .shot_vector
         # the case with ShotCopies is not handled as of now
 
-        circuit = self.circuit.map_to_standard_wires()
+        circuit = self.pennylane_circuit.map_to_standard_wires()
         shots = circuit.shots.total_shots
         if shots is None:
             shots = 1
 
         if len(circuit.measurements) == 1:
-            results = self.measure(circuit.measurements[0], self.sf_circuit, shots)
+            results = self.measure(
+                circuit.measurements[0], self.snowflurry_py_circuit, shots
+            )
         else:
             results = tuple(
-                self.measure(mp, self.sf_circuit, shots) for mp in circuit.measurements
+                self.measure(mp, self.snowflurry_py_circuit, shots)
+                for mp in circuit.measurements
             )
 
         Snowflurry.print(Snowflurry.sf_circuit)
@@ -369,12 +367,12 @@ class PennylaneConverter:
             if Snowflurry.currentClient is None:
                 # since we use simulate_shots, we need to add readouts to the circuit
                 self.remove_readouts()
-                self.apply_readouts(len(self.circuit.op_wires), mp.obs)
+                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
                 shots_results = Snowflurry.simulate_shots(Snowflurry.sf_circuit, shots)
                 result = dict(Counter(shots_results))
                 return result
             else:  # if we have a client, we use the real machine
-                self.apply_readouts(len(self.circuit.op_wires), mp.obs)
+                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
                 qpu = Snowflurry.AnyonYukonQPU(
                     Snowflurry.currentClient, Snowflurry.seval("project_id")
                 )
@@ -393,11 +391,11 @@ class PennylaneConverter:
             if Snowflurry.currentClient is None:
                 # since we use simulate_shots, we need to add readouts to the circuit
                 self.remove_readouts()
-                self.apply_readouts(len(self.circuit.op_wires), mp.obs)
+                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
                 shots_results = Snowflurry.simulate_shots(Snowflurry.sf_circuit, shots)
                 return np.asarray(shots_results).astype(int)
             else:  # if we have a client, we use the real machine
-                self.apply_readouts(len(self.circuit.op_wires), mp.obs)
+                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
                 qpu = Snowflurry.AnyonYukonQPU(
                     Snowflurry.currentClient, Snowflurry.seval("project_id")
                 )

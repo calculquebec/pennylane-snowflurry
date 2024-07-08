@@ -205,7 +205,6 @@ class SnowflurryQubitDevice(qml.devices.Device):
         results = tuple(
             PennylaneConverter(
                 c,
-                rng=self._rng,
                 debugger=self._debugger,
                 interface=interface,
                 host=self.host,
