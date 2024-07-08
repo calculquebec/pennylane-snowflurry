@@ -104,6 +104,7 @@ class PennylaneConverter:
         self.interface = interface
 
         # Instance attributes related to Snowflurry
+        self.sf_circuit = None
         if (
             len(host) != 0
             and len(user) != 0
@@ -119,12 +120,10 @@ class PennylaneConverter:
             Snowflurry.currentClient = None
 
     def simulate(self):
-        sf_circuit, is_state_batched = self.convert_circuit(
+        self.sf_circuit, is_state_batched = self.convert_circuit(
             self.circuit, debugger=self.debugger, interface=self.interface
         )
-        return self.measure_final_state(
-            self.circuit, sf_circuit, is_state_batched, self.rng
-        )
+        return self.measure_final_state(is_state_batched, self.rng)
 
     def convert_circuit(
         self, pennylane_circuit: qml.tape.QuantumScript, debugger=None, interface=None
@@ -307,7 +306,7 @@ class PennylaneConverter:
         # the wire number is 1-indexed in Julia
         Snowflurry.seval(f"push!(sf_circuit, readout({wire+1}, {wire+1}))")
 
-    def measure_final_state(self, circuit, sf_circuit, is_state_batched, rng):
+    def measure_final_state(self, is_state_batched, rng):
         """
         Perform the measurements required by the circuit on the provided state.
 
@@ -328,16 +327,16 @@ class PennylaneConverter:
         # it can return ShotCopies with .shot_vector
         # the case with ShotCopies is not handled as of now
 
-        circuit = circuit.map_to_standard_wires()
+        circuit = self.circuit.map_to_standard_wires()
         shots = circuit.shots.total_shots
         if shots is None:
             shots = 1
 
         if len(circuit.measurements) == 1:
-            results = self.measure(circuit.measurements[0], sf_circuit, shots)
+            results = self.measure(circuit.measurements[0], self.sf_circuit, shots)
         else:
             results = tuple(
-                self.measure(mp, sf_circuit, shots) for mp in circuit.measurements
+                self.measure(mp, self.sf_circuit, shots) for mp in circuit.measurements
             )
 
         Snowflurry.print(Snowflurry.sf_circuit)
