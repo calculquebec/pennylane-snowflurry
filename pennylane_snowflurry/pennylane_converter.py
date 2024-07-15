@@ -337,7 +337,7 @@ class PennylaneConverter:
                 for mp in circuit.measurements
             )
 
-        Snowflurry.print(Snowflurry.sf_circuit)
+        # Snowflurry.print(Snowflurry.sf_circuit) # uncomment to print the circuit while debugging
 
         return results
 
