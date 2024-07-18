@@ -57,7 +57,7 @@ if host, user, access_token are filled, the code will be sent to Anyon's API
 """
 
 ##########################################
-# Class attributes related to Snowflurry #
+# Defining namespace for Snowflurry      #
 ##########################################
 Snowflurry = newmodule("Snowflurry")
 Snowflurry.seval("using Snowflurry")
