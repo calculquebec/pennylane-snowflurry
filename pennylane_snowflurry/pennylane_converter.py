@@ -1,4 +1,4 @@
-from juliacall import Main, newmodule
+from juliacall import newmodule
 import pennylane as qml
 from pennylane.tape import QuantumTape, QuantumScript
 from pennylane.typing import Result, ResultBatch
@@ -193,7 +193,7 @@ class PennylaneConverter:
                 applied to.
 
         Example:
-            >>> Main.sf_circuit.instructions
+            >>> Snowflurry.sf_circuit.instructions
             [<PyCall.jlwrap Gate Object: Snowflurry.Hadamard
             Connected_qubits        : [1]
             Operator:

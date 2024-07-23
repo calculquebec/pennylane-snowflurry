@@ -3,12 +3,12 @@ from .snowflurry_device import SnowflurryQubitDevice
 from .julia_setup import JuliaEnv
 from configparser import RawConfigParser
 
-# Load the configuration file
-config = RawConfigParser()
-config.read("env_config.ini")
+# # Load the configuration file
+# config = RawConfigParser()
+# config.read("./env_config.ini")
 
-# Check if the Julia environment should be updated
-# by user or by default
+# # Check if the Julia environment should be updated
+# # by user or by the plugin
 
-if not config.getboolean("JULIA", "is_user_configured"):
-    JuliaEnv().update()
+# if not config.getboolean("JULIA", "is_user_configured"):
+JuliaEnv().update()
