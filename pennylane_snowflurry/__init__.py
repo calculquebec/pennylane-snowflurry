@@ -1,14 +1,15 @@
 from .pennylane_converter import PennylaneConverter
 from .snowflurry_device import SnowflurryQubitDevice
 from .julia_setup import JuliaEnv
-from configparser import RawConfigParser
+from configparser import ConfigParser
+from os import path as os_path
 
-# # Load the configuration file
-# config = RawConfigParser()
-# config.read("./env_config.ini")
+CONFIG_FILE_PATH = os_path.abspath(os_path.dirname(__file__) + "\\..\\env_config.ini")
 
-# # Check if the Julia environment should be updated
-# # by user or by the plugin
+# Load the configuration file
+config = ConfigParser()
+config.read(CONFIG_FILE_PATH)
 
-# if not config.getboolean("JULIA", "is_user_configured"):
-JuliaEnv().update()
+
+if not config.getboolean("JULIA", "is_user_configured"):
+    JuliaEnv().update()
