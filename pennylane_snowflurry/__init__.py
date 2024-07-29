@@ -1,5 +1,3 @@
-from .pennylane_converter import PennylaneConverter
-from .snowflurry_device import SnowflurryQubitDevice
 from .julia_setup import JuliaEnv
 from configparser import ConfigParser
 from os import path as os_path
@@ -13,3 +11,6 @@ config.read(CONFIG_FILE_PATH)
 
 if not config.getboolean("JULIA", "is_user_configured"):
     JuliaEnv().update()
+
+from .pennylane_converter import PennylaneConverter
+from .snowflurry_device import SnowflurryQubitDevice

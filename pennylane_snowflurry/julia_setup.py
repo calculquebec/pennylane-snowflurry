@@ -7,7 +7,7 @@ import os
 # Required packages for the Julia environment
 REQUIRED_PACKAGES = [
     PkgSpec(
-        name="Snowflurry", uuid="7bd9edc1-4fdc-40a1-a0f6-da58fb4f45ec", version="0.2"
+        name="Snowflurry", uuid="7bd9edc1-4fdc-40a1-a0f6-da58fb4f45ec", version="0.3"
     )
 ]
 
@@ -40,11 +40,16 @@ class JuliaEnv:
             juliapkg.resolve(force=True)
             break
 
-    def get_pkg_list(self):
+    def get_pkg_list(self) -> dict:
         """
-        This function returns the list of packages that are currently installed in the Julia environment
+        This function returns the list of packages in the configuration file juliapkg.json.
+
+        Returns: dict
+
         """
         file_path = self.pkg_path + "/pyjuliapkg/juliapkg.json"
+        if not os.path.exists(file_path):
+            return {}
         with open(file_path, "r") as f:
             juliapkg_data = json.load(f)
 
