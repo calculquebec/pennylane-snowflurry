@@ -6,35 +6,23 @@ The PennyLane-Snowflurry plugin provides a PennyLane device that allows the use 
 
 [Snowflurry](https://snowflurry.org/) is a quantum computing framework developed in Julia by Anyon Systems and aims to provide access to quantum hardware and simulators.
 
-PennyLane-Snowflurry makes use of dependencies such as PyJulia and PyCall to allow interfacing between Python and Julia, and thus between PennyLane and Snowflurry.
+PennyLane-Snowflurry makes use of dependencies like [PythonCall and JuliaCall](https://github.com/JuliaPy/PythonCall.jl) to allow interfacing between Python and Julia, and thus between PennyLane and Snowflurry.
 
 ## Project structure
 
-As shown in the diagram below, this plugin is used in Pennylane as a [device](https://pennylane.ai/plugins/) named `snowflurry.qubit`. This device is defined by the class `SnowflurryQubitDevice`. It converts a PennyLane circuit into a Snowflurry circuit, thanks to packages like PyJulia that allow the communication between Python and Julia environments. The Snowflurry circuit can then be used with the available backends, either a simulator or real quantum hardware. The results are then converted back into PennyLane's format and returned to the user.
+As shown in the diagram below, this plugin is used in Pennylane as a [device](https://pennylane.ai/plugins/) named `snowflurry.qubit`. This device is defined by the class `SnowflurryQubitDevice`. It converts a PennyLane circuit into a Snowflurry circuit, thanks to packages like JuliaCall that allow the communication between Python and Julia environments. The Snowflurry circuit can then be used with the available backends, either a simulator or real quantum hardware. The results are then converted back into PennyLane's format and returned to the user.
 
 ![interaction_diagram](https://raw.githubusercontent.com/calculquebec/pennylane-snowflurry/main/doc/interaction_diagram_extended.png)
 
 ## Local installation
 
-Since this plugin interfaces between Python and Julia, it requires both languages to be installed on your machine. As Python is widely used amongst the quantum computing community, we assume you already have it installed. The rest of this section will guide you through the installation of Julia and the plugin.
+Since this plugin interfaces between Python and Julia, it requires both languages to be installed on your machine. As Python is widely used amongst the quantum computing community, we assume you already have it installed with a package manager like pip.
 
-### Julia
-
-If you don't have Julia installed, you can download it from the [official website](https://julialang.org/downloads/). It is highly recommended to install using the installer file, as it will ask to add Julia to the system's environment variables.
-
-**To ensure this correct configuration, during the installation process, the checkbox `Add Julia to PATH` must be checked.**
-
-### PennyLane and Snowflurry
-
-Before installing this plugin, makes sure you have a working Pennylane and Snowflurry installation.
-
-For PennyLane, please refer to the [PennyLane documentation](https://pennylane.ai/install/).
-
-For Snowflurry, please refer to the [Snowflurry documentation](https://snowflurry.org).
+Note that to use Calcul Québec's services, you may not need to install the plugin locally as our users might have access to a pre-configured environment.
 
 ### Plugin installation
 
-This plugin is available on PyPI, so you can install it with pip:
+Pennylane-snowflurry can be installed using pip:
 
 ```sh
 pip install pennylane-snowflurry
@@ -46,21 +34,34 @@ Alternatively, you can clone this repo and install the plugin with the following
 pip install -e .
 ```
 
-### PyJulia and PyCall
+Pennylane and other Python dependencies will be installed automatically during the installation process.
 
-PyJulia and PyCall are used to communicate between Python and Julia. At this point, PyJulia should already be installed with the plugin as it is listed in the dependencies, but you'll need to install PyCall in your Julia environment. To do so open a python terminal and execute the following commands:
+The plugin will also take care of installing Julia and the required Julia packages, such as Snowflurry, PythonCall during the first run. Some notes on that matter are provided below.
 
-```py
-import julia
-julia.install()
+If you don't want the plugin to manage your Julia installation for you, you can set the following configuration in the env_config.ini file located in the plugin's root directory:
+
+```ini
+[JULIA]
+is_user_configured = TRUE
 ```
 
-Alternatively, you could also install PyCall from the Julia REPL, but the previous method makes sure to build the package for your current python environment.
+## Julia
 
-```julia
-using Pkg
-Pkg.add("PyCall")
-```
+As of version 0.3.0, **there is no need to install Julia manually**, since the plugin will download and install the required version automatically upon first use. This Julia environment is binded to the plugin.
+
+However, if you wish to manage your Julia environment, you can download it from the [official website](https://julialang.org/downloads/). It is highly recommended to install using the installer file, as it will ask to add Julia to the system's environment variables.
+
+**To ensure this correct configuration, during the installation process, the checkbox `Add Julia to PATH` must be checked.**
+
+## PennyLane and Snowflurry
+
+Those packages are installed automatically during the plugin installation process and are necessary for the plugin to work. Here are the links to their respective documentation:
+
+For PennyLane, please refer to the [PennyLane documentation](https://pennylane.ai/install/).
+
+For Snowflurry, please refer to the [Snowflurry documentation](https://snowflurry.org).
+
+## Usage
 
 ### Running files
 
@@ -70,7 +71,7 @@ The plugin can be used both in python scripts and Jupyter notebooks. To run a sc
 python base_circuit.py
 ```
 
-## Usage
+### How to call the device
 
 Once installed, you can write your PennyLane circuits as usual, but you'll need to specify the device as `snowflurry.qubit` and provide the Snowflurry backend you want to use if you have access to a quantum computer.
 
