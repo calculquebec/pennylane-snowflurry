@@ -11,8 +11,6 @@ CONFIG_FILE_PATH = os_path.abspath(
 config = ConfigParser()
 config.read(CONFIG_FILE_PATH)
 
-print(config.getboolean("JULIA", "is_user_configured"))
-
 if not config.getboolean("JULIA", "is_user_configured"):
     JuliaEnv().update()
 
