@@ -2,69 +2,98 @@ import juliapkg
 from juliapkg import PkgSpec
 import json
 import os
+from configparser import ConfigParser
 
 
 # Required packages for the Julia environment
 REQUIRED_PACKAGES = [
     PkgSpec(
         name="Snowflurry", uuid="7bd9edc1-4fdc-40a1-a0f6-da58fb4f45ec", version="0.3"
-    )
+    ),
 ]
+
+# Where the env_config.ini file is located
+CONFIG_FILE_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "env_config.ini")
+)
 
 
 class JuliaEnv:
     """
-    This class is used to manage the Julia environment in the specific context of the Snowflurry plugin
-    using the rudimentary juliapkg package manager functions.
+    This class is used to resolve dependencies for the Julia environment. It will install Julia and the required
+    packages if they are not already installed or up to date.
 
-    This is integrated in the plugin's __init__.py file to ensure that the required packages are installed
-    before execution."""
+    It makes use of the juliapkg Python package to manage installations and dependencies. Upon initialization,
+    juliapkg will create a directory in which metadata regarding dependencies will be stored. A JSON file saved in
+    this directory is used by juliapkg to resolve dependencies.
+
+    Simply calling the update method will install the required packages by manipulating the JSON file and forcing
+    juliapkg to resolve dependencies.
+
+    It is possible to deactivate the automatic update by setting the is_user_configured variable to True in the root
+    of the env_config.ini file situated in the root of the project.
+
+    Attributes:
+        julia_env_path: str: The path to the Julia environment metadata directory created by juliapkg
+        json_pkg_list: dict: Content of the JSON file used by juliapkg to resolve dependencies
+        json_path: str: The path to the juliapkg.json file used by juliapkg to resolve dependencies
+        required_packages: list: The required packages defined in the REQUIRED_PACKAGES variable in julia_setup.py
+        env_config_file: ConfigParser: The configuration file env_config.ini used to store user preferences
+                                       regarding the behavior of this class
+
+    """
 
     def __init__(self):
-        self.pkg_path = juliapkg.project()  # Get the path to the Julia environment
-        self.pkg_list = self.get_pkg_list()  # Get the list of installed packages
-        self.json_path = self.pkg_path + "/pyjuliapkg/juliapkg.json"
-        self.required_packages = REQUIRED_PACKAGES  # Required packages
+        self.julia_env_path = juliapkg.project()
+        self.json_path = self.julia_env_path + "/pyjuliapkg/juliapkg.json"
+        self.json_pkg_list = self.get_json_pkg_list()
+        self.required_packages = REQUIRED_PACKAGES
+        self.env_config_file = ConfigParser()
+        self.env_config_file.read(CONFIG_FILE_PATH)
 
     def update(self):
         """
-        This function updates the Julia environment with the required packages if they are
-        not already installed or up to date.
+        This function updates the Julia environment by manipulating a JSON file and forcing juliapkg to resolve
+        the environment's dependencies.
+        Setting the is_user_configured variable to True in the env_config.ini file will deactivate the update.
         """
-        for pkg in self.required_packages:
-            if pkg.name in self.pkg_list:
-                if self.parse_version(pkg):
+        if self.env_config_file.getboolean("JULIA", "is_user_configured"):
+            return
+        for required_pkg in self.required_packages:
+            if required_pkg.name in self.json_pkg_list:
+                if self.parse_version(required_pkg):
                     continue
-            self.new_pkg_list()
+            self.new_json_pkg_list()
             self.write_json()
             juliapkg.resolve(force=True)
             break
 
-    def get_pkg_list(self) -> dict:
+    def get_json_pkg_list(self) -> dict:
         """
-        This function returns the list of packages in the configuration file juliapkg.json.
+        This function returns a dictionary of packages in the configuration file juliapkg.json.
+        The key is the package name and the value is a dictionary containing the package's UUID and version.
 
         Returns: dict
 
         """
-        file_path = self.pkg_path + "/pyjuliapkg/juliapkg.json"
-        if not os.path.exists(file_path):
+        if not os.path.exists(self.json_path):
             return {}
-        with open(file_path, "r") as f:
+        with open(self.json_path, "r") as f:
             juliapkg_data = json.load(f)
 
         return juliapkg_data.get("packages", [])
 
-    def parse_version(self, pkg) -> bool:
+    def parse_version(self, required_pkg) -> bool:
         """
-        This function lookups the pkg passed in argument within the list of installed packages
-        and compares the version to the one passed in argument. If the package is found and the version
-        is the same, it returns True, otherwise it returns False.
+        This function compares the version of the required package with the version in the JSON file.
+
+        Args:
+            required_pkg: PkgSpec: The required package
         """
         try:
-            for package_name, package_info in self.pkg_list.items():
-                if str(package_name) == pkg.name:
-                    if package_info.get("version", []) == pkg.version:
+            for package_name, package_info in self.json_pkg_list.items():
+                if str(package_name) == required_pkg.name:
+                    if package_info.get("version", []) == required_pkg.version:
                         return True
                     return False
         except:
@@ -72,19 +101,21 @@ class JuliaEnv:
 
     def write_json(self):
         """
-        This function writes the updated list of packages to the juliapkg.json file
+        This function writes the updated list of packages to the JSON file
+        It also creates the JSON file if it does not exist.
         """
-        self.pkg_list = {"packages": self.pkg_list}
+        if "packages" not in self.json_pkg_list:
+            self.json_pkg_list = {"packages": self.json_pkg_list}
         with open(self.json_path, "w") as f:
-            json.dump(self.pkg_list, f)
+            json.dump(self.json_pkg_list, f)
 
-    def new_pkg_list(self):
+    def new_json_pkg_list(self):
         """
         This function updates the list of packages with the required packages
         """
 
-        for pkg in self.required_packages:
-            self.pkg_list[pkg.name] = {
-                "uuid": pkg.uuid,
-                "version": pkg.version,
+        for required_pkg in self.required_packages:
+            self.json_pkg_list[required_pkg.name] = {
+                "uuid": required_pkg.uuid,
+                "version": required_pkg.version,
             }
