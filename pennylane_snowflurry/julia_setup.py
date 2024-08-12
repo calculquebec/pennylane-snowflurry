@@ -2,8 +2,6 @@ import juliapkg
 from juliapkg import PkgSpec
 import json
 import os
-from configparser import ConfigParser
-
 
 # Required packages for the Julia environment
 REQUIRED_PACKAGES = [
@@ -12,10 +10,7 @@ REQUIRED_PACKAGES = [
     ),
 ]
 
-# Where the env_config.ini file is located
-CONFIG_FILE_PATH = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..", "env_config.ini")
-)
+IS_USER_CONFIGURED = False
 
 
 class JuliaEnv:
@@ -30,16 +25,13 @@ class JuliaEnv:
     Simply calling the update method will install the required packages by manipulating the JSON file and forcing
     juliapkg to resolve dependencies.
 
-    It is possible to deactivate the automatic update by setting the is_user_configured variable to True in the root
-    of the env_config.ini file situated in the root of the project.
+    It is possible to deactivate the automatic update by setting the IS_USER_CONFIGURED variable to True.
 
     Attributes:
         julia_env_path: str: The path to the Julia environment metadata directory created by juliapkg
         json_pkg_list: dict: Content of the JSON file used by juliapkg to resolve dependencies
         json_path: str: The path to the juliapkg.json file used by juliapkg to resolve dependencies
         required_packages: list: The required packages defined in the REQUIRED_PACKAGES variable in julia_setup.py
-        env_config_file: ConfigParser: The configuration file env_config.ini used to store user preferences
-                                       regarding the behavior of this class
 
     """
 
@@ -48,17 +40,16 @@ class JuliaEnv:
         self.json_path = self.julia_env_path + "/pyjuliapkg/juliapkg.json"
         self.json_pkg_list = self.get_json_pkg_list()
         self.required_packages = REQUIRED_PACKAGES
-        self.env_config_file = ConfigParser()
-        self.env_config_file.read(CONFIG_FILE_PATH)
 
     def update(self):
         """
         This function updates the Julia environment by manipulating a JSON file and forcing juliapkg to resolve
         the environment's dependencies.
-        Setting the is_user_configured variable to True in the env_config.ini file will deactivate the update.
+        Setting the IS_USER_CONFIGURED variable to True will deactivate the update.
         """
-        if self.env_config_file.getboolean("JULIA", "is_user_configured"):
+        if IS_USER_CONFIGURED:
             return
+
         for required_pkg in self.required_packages:
             if required_pkg.name in self.json_pkg_list:
                 if self.parse_version(required_pkg):
