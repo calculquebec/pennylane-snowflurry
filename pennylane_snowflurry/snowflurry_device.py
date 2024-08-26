@@ -204,7 +204,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
 
         results = tuple(
             PennylaneConverter(
-                c,
+                circuit,
                 debugger=self._debugger,
                 interface=interface,
                 host=self.host,
@@ -213,7 +213,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
                 project_id=self.project_id,
                 realm=self.realm,
             ).simulate()
-            for c in circuits
+            for circuit in circuits
         )
 
         return results[0] if is_single_circuit else results

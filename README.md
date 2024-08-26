@@ -38,11 +38,10 @@ Pennylane and other Python dependencies will be installed automatically during t
 
 The plugin will also take care of installing Julia and the required Julia packages, such as Snowflurry, PythonCall during the first run. Some notes on that matter are provided below.
 
-If you don't want the plugin to manage your Julia installation for you, you can set the following configuration in the env_config.ini file located in the plugin's root directory:
+If you wish to disable this behaviour, you can edit the julia_env.py file and set the value of the variable `IS_USER_CONFIGURED` to `TRUE`:
 
-```ini
-[JULIA]
-is_user_configured = TRUE
+```py
+IS_USER_CONFIGURED = True
 ```
 
 ## Julia
