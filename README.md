@@ -18,7 +18,7 @@ As shown in the diagram below, this plugin is used in Pennylane as a [device](ht
 
 Since this plugin interfaces between Python and Julia, it requires both languages to be installed on your machine. As Python is widely used amongst the quantum computing community, we assume you already have it installed with a package manager like pip.
 
-Note that to use Calcul Québec's services, you may not need to install the plugin locally as our users might have access to a pre-configured environment.
+Note that to use [Calcul Québec's services](https://docs.alliancecan.ca/wiki/Les_services_quantiques/en), you may not need to install the plugin locally as our users might have access to a pre-configured environment.
 
 ### Plugin installation
 
@@ -46,7 +46,7 @@ IS_USER_CONFIGURED = True
 
 ## Julia
 
-As of version 0.3.0, **there is no need to install Julia manually**, since the plugin will download and install the required version automatically upon first use. This Julia environment is binded to the plugin.
+As of version 0.3.0, **there is no need to install Julia manually**, since the plugin will download and install the required version automatically upon first use. This Julia environment is bound to the plugin.
 
 However, if you wish to manage your Julia environment, you can download it from the [official website](https://julialang.org/downloads/). It is highly recommended to install using the installer file, as it will ask to add Julia to the system's environment variables.
 
