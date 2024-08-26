@@ -4,3 +4,4 @@
 .benchmarks/*
 dist/*
 docs/_build/*
+build
