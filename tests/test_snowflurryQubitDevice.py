@@ -1,8 +1,12 @@
 import unittest
 from pennylane_snowflurry.snowflurry_device import SnowflurryQubitDevice
-from julia import Snowflurry
-from julia import Base
-from julia import Main
+from juliacall import newmodule
+
+# TODO : this namespace should be imported from the plugin
+Snowflurry = newmodule("Snowflurry")
+Snowflurry.seval("using Snowflurry")
+
+
 class TestSnowflurryQubitDeviceInitialization(unittest.TestCase):
     def test_initialization(self):
         # Example parameters
@@ -19,10 +23,8 @@ class TestSnowflurryQubitDeviceInitialization(unittest.TestCase):
 
     def test_hadamard_pyjulia(self):
         c = Snowflurry.QuantumCircuit(qubit_count=3)
-        j = julia.julia()
-        j.eval("jl.eval('push!(c,hadamard(1))')")
+        Snowflurry.seval("jl.eval('push!(c,hadamard(1))')")
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

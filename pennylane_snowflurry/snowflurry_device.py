@@ -97,15 +97,13 @@ class SnowflurryQubitDevice(qml.devices.Device):
         wires=None,
         shots=None,
         seed="global",
-        max_workers=None,
         host="",
         user="",
         access_token="",
         project_id="",
-        realm=""
+        realm="",
     ) -> None:
         super().__init__(wires=wires, shots=shots)
-        self._max_workers = max_workers
 
         seed = np.random.randint(0, high=10000000) if seed == "global" else seed
         self._rng = np.random.default_rng(seed)
@@ -113,7 +111,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
         self.user = user
         self.access_token = access_token
         self.project_id = project_id
-        self.realm=realm
+        self.realm = realm
         self._debugger = None
 
     pennylane_requires = ">=0.30.0"
@@ -195,9 +193,6 @@ class SnowflurryQubitDevice(qml.devices.Device):
 
         # Check if execution_config is an instance of ExecutionConfig
         if isinstance(execution_config, ExecutionConfig):
-            max_workers = execution_config.device_options.get(
-                "max_workers", self._max_workers
-            )
             interface = (
                 execution_config.interface
                 if execution_config.gradient_method in {"backprop", None}
@@ -205,40 +200,20 @@ class SnowflurryQubitDevice(qml.devices.Device):
             )
         else:
             # Fallback or default behavior if execution_config is not an instance of ExecutionConfig
-            max_workers = self._max_workers
             interface = None
 
-        if max_workers is None:
-            results = tuple(
-                PennylaneConverter(
-                    c,
-                    rng=self._rng,
-                    debugger=self._debugger,
-                    interface=interface,
-                    host=self.host,
-                    user=self.user,
-                    access_token=self.access_token,
-                    project_id=self.project_id,
-                    realm=self.realm
-                ).simulate()
-                for c in circuits
-            )
-        else:
-            vanilla_circuits = [convert_to_numpy_parameters(c) for c in circuits]
-            seeds = self._rng.integers(2**31 - 1, size=len(vanilla_circuits))
-            _wrap_simulate = partial(simulate, debugger=None, interface=interface)
-            with concurrent.futures.ProcessPoolExecutor(
-                max_workers=max_workers
-            ) as executor:
-                exec_map = executor.map(
-                    _wrap_simulate,
-                    vanilla_circuits,
-                    seeds,
-                    [self._prng_key] * len(vanilla_circuits),
-                )
-                results = tuple(exec_map)
-
-            # reset _rng to mimic serial behavior
-            self._rng = np.random.default_rng(self._rng.integers(2**31 - 1))
+        results = tuple(
+            PennylaneConverter(
+                circuit,
+                debugger=self._debugger,
+                interface=interface,
+                host=self.host,
+                user=self.user,
+                access_token=self.access_token,
+                project_id=self.project_id,
+                realm=self.realm,
+            ).simulate()
+            for circuit in circuits
+        )
 
         return results[0] if is_single_circuit else results

@@ -2,7 +2,11 @@ import pennylane as qml
 import unittest
 from pennylane import numpy as np
 from pennylane.tape import QuantumScript
-from julia import Snowflurry
+from juliacall import newmodule
+
+# TODO : this namespace should be imported from the plugin
+Snowflurry = newmodule("Snowflurry")
+Snowflurry.seval("using Snowflurry")
 
 
 class TestMeasurements(unittest.TestCase):
