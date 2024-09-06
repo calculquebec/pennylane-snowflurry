@@ -108,7 +108,7 @@ class PennylaneConverter:
             len(host) != 0
             and len(user) != 0
             and len(access_token) != 0
-            and len(project_id) != 0
+            # and len(project_id) != 0
             and len(realm) != 0
         ):
             Snowflurry.currentClient = Snowflurry.Client(
@@ -374,15 +374,11 @@ class PennylaneConverter:
                 return result
             else:  # if we have a client, we use the real machine
                 self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
-                qpu = Snowflurry.AnyonYukonQPU(
+                qpu = Snowflurry.AnyonYamaskaQPU(
                     Snowflurry.currentClient, Snowflurry.seval("project_id")
                 )
-                shots_results = Snowflurry.run_job(
-                    qpu,
-                    Snowflurry.transpile(
-                        Snowflurry.get_transpiler(qpu), Snowflurry.sf_circuit
-                    ),
-                    shots,
+                shots_results, time = Snowflurry.transpile_and_run_job(
+                    qpu, Snowflurry.sf_circuit, shots
                 )
                 result = dict(Counter(shots_results))
                 return result
@@ -397,15 +393,11 @@ class PennylaneConverter:
                 return np.asarray(shots_results).astype(int)
             else:  # if we have a client, we use the real machine
                 self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
-                qpu = Snowflurry.AnyonYukonQPU(
+                qpu = Snowflurry.AnyonYamaskaQPU(
                     Snowflurry.currentClient, Snowflurry.seval("project_id")
                 )
-                shots_results = Snowflurry.run_job(
-                    qpu,
-                    Snowflurry.transpile(
-                        Snowflurry.get_transpiler(qpu), Snowflurry.sf_circuit
-                    ),
-                    shots,
+                shots_results, time = Snowflurry.transpile_and_run_job(
+                    qpu, Snowflurry.sf_circuit, shots,
                 )
                 return np.repeat(
                     [int(key) for key in shots_results.keys()],
@@ -416,11 +408,12 @@ class PennylaneConverter:
         if isinstance(mp, ProbabilityMP):
             self.remove_readouts()
             wires_list = mp.wires.tolist()
+            julia_wires_list = Snowflurry.convert(Snowflurry.Vector[Snowflurry.Int], [i + 1 for i in wires_list])
             if len(wires_list) == 0:
                 return Snowflurry.get_measurement_probabilities(Snowflurry.sf_circuit)
             else:
                 return Snowflurry.get_measurement_probabilities(
-                    Snowflurry.sf_circuit, [i + 1 for i in wires_list]
+                    Snowflurry.sf_circuit, julia_wires_list
                 )
 
         # if measurement is a qml.expval
@@ -432,8 +425,9 @@ class PennylaneConverter:
             if mp.obs is not None and mp.obs.has_matrix:
                 print(type(mp.obs))
                 observable_matrix = qml.matrix(mp.obs)
+                julia_array = Snowflurry.convert(Snowflurry.Array, observable_matrix)
                 return Snowflurry.expected_value(
-                    Snowflurry.DenseOperator(observable_matrix), Snowflurry.result_state
+                    Snowflurry.DenseOperator(julia_array), Snowflurry.result_state
                 )
 
         # if measurement is a qml.state

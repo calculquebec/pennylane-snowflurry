@@ -6,7 +6,7 @@ import os
 # Required packages for the Julia environment
 REQUIRED_PACKAGES = [
     PkgSpec(
-        name="Snowflurry", uuid="7bd9edc1-4fdc-40a1-a0f6-da58fb4f45ec", version="0.3"
+        name="Snowflurry", uuid="7bd9edc1-4fdc-40a1-a0f6-da58fb4f45ec", version="0.4"
     ),
 ]
 
