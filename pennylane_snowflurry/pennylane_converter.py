@@ -362,7 +362,7 @@ class PennylaneConverter:
             shots (int): The number of shots
 
         Returns:
-            # result: The measurement result TODO : type needs to be unified
+            result: The measurement result TODO : type needs to be unified
 
         Currently supported measurements :
             - counts(works with Snowflurry.simulate_shots)
@@ -373,8 +373,6 @@ class PennylaneConverter:
 
         """
         strategy = self.get_strategy(mp)
-        # print(f"Strategy: {strategy}, Measurement Process: {mp}, Shots: {shots}, Converter: {self}")
-        # strategy.print()
         result = strategy.measure(self, mp, shots)
         return result
 

@@ -22,6 +22,5 @@ class ExpectationValue(MeasurementStrategy):
             expected_value = self.Snowflurry.expected_value(
                 self.Snowflurry.DenseOperator(convert(self.Snowflurry.Matrix, observable_matrix)),
                 self.Snowflurry.result_state
-                # self.Snowflurry.DenseOperator(observable_matrix), self.Snowflurry.result_state
             )
             return np.real(expected_value)
