@@ -10,11 +10,11 @@ class Sample(MeasurementStrategy):
     def measure(self, converter, mp, shots):
         if self.Snowflurry.currentClient is None:
             converter.remove_readouts()
-            converter.apply_readouts(len(converter.pennylane_circuit.op_wires), mp.obs)
+            converter.apply_readouts(mp.obs)
             shots_results = self.Snowflurry.simulate_shots(self.Snowflurry.sf_circuit, shots)
             return np.asarray(shots_results).astype(int)
         else:
-            converter.apply_readouts(len(converter.pennylane_circuit.op_wires), mp.obs)
+            converter.apply_readouts(mp.obs)
             qpu = self.Snowflurry.AnyonYamaskaQPU(
                 self.Snowflurry.currentClient, self.Snowflurry.seval("project_id")
             )
