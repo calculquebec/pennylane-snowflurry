@@ -183,11 +183,14 @@ class SnowflurryQubitDevice(qml.devices.Device):
         Execute a batch of quantum circuits or a single circuit on the device.
 
         Args:
-            circuits (QuantumTape or Sequence[QuantumTape]): a single quantum circuit or a batch of quantum circuits to execute.
-            execution_config (ExecutionConfig): a data structure describing the parameters needed to fully describe the execution.
+            circuits (QuantumTape or Sequence[QuantumTape]): a single quantum circuit or a batch of quantum
+            circuits to execute.
+            execution_config (ExecutionConfig): a data structure describing the parameters needed to
+            fully describe the execution.
 
         Returns:
-            Result (tuple): a single result if a single circuit is executed, or a tuple of results if a batch of circuits is executed.
+            Result (tuple): a single result if a single circuit is executed, or a tuple of results if a batch of
+            circuits is executed.
         """
         is_single_circuit = False
         if isinstance(circuits, QuantumScript):
