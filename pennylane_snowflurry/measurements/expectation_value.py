@@ -10,7 +10,8 @@ class ExpectationValue(MeasurementStrategy):
         super().__init__()
 
     def measure(self, converter, mp, shots):
-        # FIXME : this measurement only works with a single wire
+        # FIXME : this measurement does work when the number of qubits measured is not equal to the number of qubits
+        #  in the circuit
         # Requires some processing to work with larger matrices
         converter.remove_readouts()
         self.Snowflurry.result_state = self.Snowflurry.simulate(self.Snowflurry.sf_circuit)
