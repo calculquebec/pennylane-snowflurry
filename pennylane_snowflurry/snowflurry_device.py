@@ -136,6 +136,15 @@ class SnowflurryQubitDevice(qml.devices.Device):
     }
 
     @property
+    def num_wires(self):
+        """Get the number of wires.
+
+        Returns:
+            int: The number of wires.
+        """
+        return len(self.wires)
+
+    @property
     def name(self):
         """The name of the device."""
         return "snowflurry.qubit"
@@ -212,6 +221,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
                 access_token=self.access_token,
                 project_id=self.project_id,
                 realm=self.realm,
+                wires=self.num_wires,
             ).simulate()
             for circuit in circuits
         )

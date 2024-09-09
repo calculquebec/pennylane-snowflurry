@@ -95,12 +95,14 @@ class PennylaneConverter:
         access_token="",
         project_id="",
         realm="",
+        wires=None
     ) -> Result:
 
         # Instance attributes related to PennyLane
         self.pennylane_circuit = pennylane_circuit
         self.debugger = debugger
         self.interface = interface
+        self.wires=wires
 
         # Instance attributes related to Snowflurry
         self.snowflurry_py_circuit = None
@@ -141,7 +143,8 @@ class PennylaneConverter:
                 a boolean indicating if the state has a batch dimension.
         """
 
-        wires_nb = len(pennylane_circuit.wires)
+        wires_nb = self.wires # default number of wires in the circuit
+        print(f"Number of wires in the circuit: {self.wires}")
         Snowflurry.sf_circuit = Snowflurry.QuantumCircuit(qubit_count=wires_nb)
 
         prep = None
@@ -151,7 +154,7 @@ class PennylaneConverter:
             prep = pennylane_circuit[0]
 
         # Add gates to Snowflurry circuit
-        for op in pennylane_circuit.map_to_standard_wires().operations[bool(prep) :]:
+        for op in pennylane_circuit.operations[bool(prep) :]:
             if op.name in SNOWFLURRY_OPERATION_MAP:
                 if SNOWFLURRY_OPERATION_MAP[op.name] == NotImplementedError:
                     print(f"{op.name} is not implemented yet, skipping...")
@@ -175,7 +178,7 @@ class PennylaneConverter:
         """
 
         if obs is None:  # if no observable is given, we apply readouts to all wires
-            for wire in range(wires_nb):
+            for wire in range(self.wires):
                 Snowflurry.seval(f"push!(sf_circuit, readout({wire + 1}, {wire + 1}))")
 
         else:
@@ -368,12 +371,12 @@ class PennylaneConverter:
             if Snowflurry.currentClient is None:
                 # since we use simulate_shots, we need to add readouts to the circuit
                 self.remove_readouts()
-                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
+                self.apply_readouts(self.pennylane_circuit.op_wires, mp.obs)
                 shots_results = Snowflurry.simulate_shots(Snowflurry.sf_circuit, shots)
                 result = dict(Counter(shots_results))
                 return result
             else:  # if we have a client, we use the real machine
-                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
+                self.apply_readouts(self.pennylane_circuit.op_wires, mp.obs)
                 qpu = Snowflurry.AnyonYamaskaQPU(
                     Snowflurry.currentClient, Snowflurry.seval("project_id")
                 )
@@ -388,11 +391,11 @@ class PennylaneConverter:
             if Snowflurry.currentClient is None:
                 # since we use simulate_shots, we need to add readouts to the circuit
                 self.remove_readouts()
-                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
+                self.apply_readouts(self.pennylane_circuit.op_wires, mp.obs)
                 shots_results = Snowflurry.simulate_shots(Snowflurry.sf_circuit, shots)
                 return np.asarray(shots_results).astype(int)
             else:  # if we have a client, we use the real machine
-                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
+                self.apply_readouts(self.pennylane_circuit.op_wires, mp.obs)
                 qpu = Snowflurry.AnyonYamaskaQPU(
                     Snowflurry.currentClient, Snowflurry.seval("project_id")
                 )
