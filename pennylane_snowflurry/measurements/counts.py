@@ -8,15 +8,14 @@ class Counts(MeasurementStrategy):
         super().__init__()
 
     def measure(self, converter, mp, shots):
-        print(self.Snowflurry.currentClient)
         if self.Snowflurry.currentClient is None:
             converter.remove_readouts()
-            converter.apply_readouts(len(converter.pennylane_circuit.op_wires), mp.obs)
+            converter.apply_readouts(mp.obs)
             shots_results = self.Snowflurry.simulate_shots(self.Snowflurry.sf_circuit, shots)
             result = dict(Counter(shots_results))
             return result
         else:  # if we have a client, we use the real machine
-            converter.apply_readouts(converter.pennylane_circuit.op_wires, mp.obs)
+            converter.apply_readouts(mp.obs)
             qpu = self.Snowflurry.AnyonYamaskaQPU(
                 self.Snowflurry.currentClient, self.Snowflurry.seval("project_id")
             )

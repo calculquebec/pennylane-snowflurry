@@ -136,6 +136,15 @@ class SnowflurryQubitDevice(qml.devices.Device):
     }
 
     @property
+    def num_wires(self):
+        """Get the number of wires.
+
+        Returns:
+            int: The number of wires.
+        """
+        return len(self.wires)
+
+    @property
     def name(self):
         """The name of the device."""
         return "snowflurry.qubit"
@@ -174,11 +183,14 @@ class SnowflurryQubitDevice(qml.devices.Device):
         Execute a batch of quantum circuits or a single circuit on the device.
 
         Args:
-            circuits (QuantumTape or Sequence[QuantumTape]): a single quantum circuit or a batch of quantum circuits to execute.
-            execution_config (ExecutionConfig): a data structure describing the parameters needed to fully describe the execution.
+            circuits (QuantumTape or Sequence[QuantumTape]): a single quantum circuit or a batch of quantum
+            circuits to execute.
+            execution_config (ExecutionConfig): a data structure describing the parameters needed to
+            fully describe the execution.
 
         Returns:
-            Result (tuple): a single result if a single circuit is executed, or a tuple of results if a batch of circuits is executed.
+            Result (tuple): a single result if a single circuit is executed, or a tuple of results if a batch of
+            circuits is executed.
         """
         is_single_circuit = False
         if isinstance(circuits, QuantumScript):
@@ -212,6 +224,7 @@ class SnowflurryQubitDevice(qml.devices.Device):
                 access_token=self.access_token,
                 project_id=self.project_id,
                 realm=self.realm,
+                wires=self.num_wires,
             ).simulate()
             for circuit in circuits
         )

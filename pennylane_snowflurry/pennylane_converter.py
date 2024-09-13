@@ -2,8 +2,6 @@ from juliacall import newmodule
 import pennylane as qml
 from pennylane.tape import QuantumTape
 from pennylane.typing import Result
-import numpy as np
-from collections import Counter
 from pennylane.measurements import (
     StateMeasurement,
     MeasurementProcess,
@@ -105,12 +103,14 @@ class PennylaneConverter:
         access_token="",
         project_id="",
         realm="",
-    ) -> Result:
+        wires=None
+    ):
 
         # Instance attributes related to PennyLane
         self.pennylane_circuit = pennylane_circuit
         self.debugger = debugger
         self.interface = interface
+        self.wires = wires
 
         # Instance attributes related to Snowflurry
         self.snowflurry_py_circuit = None
@@ -131,28 +131,26 @@ class PennylaneConverter:
 
     def simulate(self):
         self.snowflurry_py_circuit = self.convert_circuit(
-            self.pennylane_circuit, debugger=self.debugger, interface=self.interface
+            self.pennylane_circuit
         )
         return self.measure_final_state()
 
     def convert_circuit(
-        self, pennylane_circuit: QuantumTape, debugger=None, interface=None
+        self, pennylane_circuit: QuantumTape,
     ):
         """
         Convert the received pennylane circuit into a snowflurry device in julia.
         It is then store into Snowflurry.sf_circuit
 
         Args:
-            circuit (QuantumTape): The circuit to simulate.
-            debugger (optional): Debugger instance, if debugging is needed.
-            interface (str, optional): The interface to use for any necessary conversions.
+            pennylane_circuit (QuantumTape): The circuit to simulate.
 
         Returns:
             Tuple[TensorLike, bool]: A tuple containing the final state of the quantum script and
                 a boolean indicating if the state has a batch dimension.
         """
 
-        wires_nb = len(pennylane_circuit.wires)
+        wires_nb = self.wires  # default number of wires in the circuit
         Snowflurry.sf_circuit = Snowflurry.QuantumCircuit(qubit_count=wires_nb)
 
         prep = None
@@ -162,7 +160,7 @@ class PennylaneConverter:
             prep = pennylane_circuit[0]
 
         # Add gates to Snowflurry circuit
-        for op in pennylane_circuit.map_to_standard_wires().operations[bool(prep) :]:
+        for op in pennylane_circuit.operations[bool(prep):]:
             if op.name in SNOWFLURRY_OPERATION_MAP:
                 if SNOWFLURRY_OPERATION_MAP[op.name] == NotImplementedError:
                     print(f"{op.name} is not implemented yet, skipping...")
@@ -175,18 +173,17 @@ class PennylaneConverter:
 
         return Snowflurry.sf_circuit
 
-    def apply_readouts(self, wires_nb, obs):
+    def apply_readouts(self, obs):
         """
         Apply readouts to all wires in the snowflurry circuit.
 
         Args:
-            wires_nb (int): The number of wires in the circuit.
             obs (Optional[Observable]): The observable mentioned in the measurement process. If None,
                 readouts are applied to all wires because we assume the user wants to measure all wires.
         """
 
         if obs is None:  # if no observable is given, we apply readouts to all wires
-            for wire in range(wires_nb):
+            for wire in range(self.wires):
                 Snowflurry.seval(f"push!(sf_circuit, readout({wire + 1}, {wire + 1}))")
 
         else:
@@ -321,11 +318,6 @@ class PennylaneConverter:
         Perform the measurements required by the circuit on the provided state.
 
         This is an internal function that will be called by the successor to ``default.qubit``.
-
-        Args:
-            circuit (.QuantumTape): The single circuit to simulate
-            sf_circuit : The snowflurry circuit used
-            is_state_batched (bool): Whether the state has a batch dimension or not.
 
         Returns:
             Tuple[TensorLike]: The measurement results
