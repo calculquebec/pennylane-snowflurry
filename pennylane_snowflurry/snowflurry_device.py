@@ -230,3 +230,16 @@ class SnowflurryQubitDevice(qml.devices.Device):
         )
 
         return results[0] if is_single_circuit else results
+
+
+class MonarqDevice(qml.devices.Device):
+
+    def __init__(self):
+        super().__init__(wires=1, shots=1)
+
+    @property
+    def name(self):
+        return "monarq.default"
+
+    def execute(self, tape, **kwargs):
+        return "you have accessed the Monarq device"
