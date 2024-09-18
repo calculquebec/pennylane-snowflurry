@@ -40,6 +40,7 @@ test = ["matplotlib", "pytest", "pytest-mock", "flaky"]
 
 [project.entry-points."pennylane.plugins"]
 "snowflurry.qubit" = "pennylane_snowflurry:SnowflurryQubitDevice"
+"monarq.default" = "pennylane_snowflurry:MonarqDevice"
 
 [project.entry-points."pennylane.io"]
 
