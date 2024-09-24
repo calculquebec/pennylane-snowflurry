@@ -1,7 +1,6 @@
-import pennylane.tape as tape
+from pennylane.tape import QuantumTape
 from pennylane.operation import Operation
 from pennylane.measurements import MeasurementProcess
-from graph_util import find_isomorphisms
 
 import requests
 import json
@@ -19,7 +18,7 @@ class internal:
             dict[str, any]: a dictionary representation of the operation that can be read by the Thunderhead API
         """
         operation = {
-            internal.keys.qubits : [actual_qubits[i] for i in instruction.wires],
+            internal.keys.qubits : [actual_qubits[i] for i, w in enumerate(instruction.wires)],
             internal.keys.type : instructions[instruction.name]
         }
         if instruction.name == "PhaseShift": operation[internal.keys.parameters] = {"lambda" : instruction.parameters[0]}
@@ -27,7 +26,7 @@ class internal:
         return operation
     
     @staticmethod
-    def convert_circuit(tape : tape.QuantumScript) -> dict[str, any]:
+    def convert_circuit(circuit : QuantumTape) -> dict[str, any]:
         """converts a pennylane quantum script to a dictionary that can be read by the Thunderhead API
 
         Args:
@@ -37,24 +36,22 @@ class internal:
             dict[str, any]: a dictionary representation of the circuit that can be read by the API
         """
 
-        actual_qubits = find_isomorphisms(tape) if tape.num_wires > 1 else [1]
-
-        circuit = {
+        circuit_dict = {
             internal.keys.bitCount : 24,
-            internal.keys.operations : [internal.convert_instruction(op, actual_qubits) for op in tape.operations if not isinstance(op, MeasurementProcess)],
+            internal.keys.operations : [internal.convert_instruction(op, circuit.wires) for op in circuit.operations if not isinstance(op, MeasurementProcess)],
             internal.keys.qubitCount : 24
         }
-        for m in tape.measurements:
-            wires = m.wires if len(m.wires) > 0 else [_ for _ in range(len(actual_qubits))]
-            for w in wires:
-                if w in [w2[internal.keys.qubits] for w2 in circuit[internal.keys.operations]]:
+        for m in circuit.measurements:
+            wires = m.wires if len(m.wires) > 0 else [_ for _ in range(len(circuit.wires))]
+            for i, w in enumerate(wires):
+                if i in [w2[internal.keys.qubits] for w2 in circuit_dict[internal.keys.operations]]:
                     continue
-                circuit[internal.keys.operations].append({
-                    internal.keys.qubits : [actual_qubits[w]],
-                    internal.keys.bits : [w],
+                circuit_dict[internal.keys.operations].append({
+                    internal.keys.qubits : [circuit.wires[i]],
+                    internal.keys.bits : [i],
                     internal.keys.type : "readout"
                 })
-        return circuit
+        return circuit_dict
     
     @staticmethod
     def basic_auth(username : str, password : str) -> str:
@@ -90,7 +87,7 @@ class internal:
         }
     
     @staticmethod
-    def job_body(circuit : tape.QuantumScript, name : str, project_id : str, machine_name : str, shots = -1) -> dict[str, any]:
+    def job_body(circuit : dict[str, any], circuit_name : str, project_id : str, machine_name : str, shots) -> dict[str, any]:
         """the body for the job creation request
 
         Args:
@@ -104,11 +101,11 @@ class internal:
             dict[str, any]: the body for the job creation request
         """
         body = {
-            internal.keys.name : name,
+            internal.keys.name : circuit_name,
             internal.keys.projectID : project_id,
             internal.keys.machineName : machine_name,
-            internal.keys.shotCount : shots if shots > 0 else circuit.shots.total_shots,
-            internal.keys.circuit : internal.convert_circuit(circuit),
+            internal.keys.shotCount : shots,
+            internal.keys.circuit : circuit,
         }
         return body
 
@@ -156,11 +153,12 @@ class ApiAdapter:
         self.host = host
         self.headers = internal.headers(user, access_token, realm)
         
-    def create_job(self, tape : tape.QuantumScript, 
-                   circuit_name : str = "Quantum Circuit", 
-                   project_id : str = "", 
-                   machine_name : str = "") -> requests.Response:
-        body = internal.job_body(tape, circuit_name, project_id, machine_name)
+    def create_job(self, circuit : dict[str, any], 
+                   circuit_name : str, 
+                   project_id : str, 
+                   machine_name : str, 
+                   shot_count : int) -> requests.Response:
+        body = internal.job_body(circuit, circuit_name, project_id, machine_name, shot_count)
         return requests.post(self.host + internal.routes.jobs, data=json.dumps(body), headers=self.headers)
 
     def list_jobs(self) -> requests.Response:

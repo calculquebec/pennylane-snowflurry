@@ -13,8 +13,8 @@ import transpiler.physical_optimization as step6
 def transpile(tape : QuantumTape):
     optimized_tape = deepcopy(tape)
     with qml.QueuingManager.stop_recording():
-        optimized_tape = step1.virtual_optimisation(optimized_tape)
         optimized_tape = step2.multiple_gate_decomposition(optimized_tape)
+        optimized_tape = step1.virtual_optimisation(optimized_tape)
         optimized_tape = step3.physical_placement(optimized_tape)
         optimized_tape = step4.swap_routing(optimized_tape)
         optimized_tape = step5.native_gate_decomposition(optimized_tape)

@@ -11,13 +11,12 @@ from pennylane import transform
 import pennylane.transforms as transforms
 from api_job import Job
 from api_adapter import instructions
-from custom_decomposition import thunderhead_decompose
-from custom_optimization import thunderhead_optimize
+# from custom_decomposition import thunderhead_decompose
+from transpiler.monarq_transpile import transpile
 
-
-class ThunderheadDevice(Device):
-    name = "Thunderhead device"
-    short_name = "thunderhead.qubit"
+class MonarqDevice(Device):
+    name = "MonarQDevice"
+    short_name = "monarq.qubit"
     pennylane_requires = ">=0.30.0"
     author = "CalculQuébec"
     
@@ -42,7 +41,7 @@ class ThunderheadDevice(Device):
     
     @property
     def name(self):
-        return ThunderheadDevice.short_name
+        return MonarqDevice.short_name
     
     def preprocess(
         self,
@@ -62,9 +61,7 @@ class ThunderheadDevice(Device):
         config = execution_config
 
         transform_program = TransformProgram()
-        transform_program.add_transform(thunderhead_decompose)
-        # transform_program.add_transform(thunderhead_optimize)
-
+        transform_program.add_transform(transpile)
         return transform_program, config
 
     def execute(self, circuits: QuantumTape | list[QuantumTape], execution_config : ExecutionConfig = DefaultExecutionConfig):
@@ -93,35 +90,35 @@ class ThunderheadDevice(Device):
         results = [Job(host=self.host, 
                        user=self.user, 
                        access_token=self.access_token, 
-                       realm=ThunderheadDevice.realm)
+                       realm=MonarqDevice.realm)
                    .run(circ, 
-                        ThunderheadDevice.circuit_name, 
-                        ThunderheadDevice.project_id, 
-                        ThunderheadDevice.machine_name) for circ in circuits]
+                        MonarqDevice.circuit_name, 
+                        MonarqDevice.project_id, 
+                        MonarqDevice.machine_name) for circ in circuits]
         
         return results if not is_single_circuit else results[0]
-    
+ 
 if __name__ == "__main__":
+    import numpy as np
     class const:
         host = "https://manager.anyonlabs.com"
         user = "stage"
         access_token = "FjjIKjmDMoAMzSO4v2Bu62a+8vD39zib"
         realm = "calculqc"
         machine_name = "yamaska"
-        project_id = ""
+        project_id = "default"
         circuit_name = "test_circuit"
-        
-    from thunderhead_device import ThunderheadDevice
+    
+    from dotenv import dotenv_values
     import pennylane as qml
 
-    dev = ThunderheadDevice(3, 1000, const.host, const.user, const.access_token)
+    num_wires = 1
+    dev = MonarqDevice(num_wires, 10, const.host, const.user, const.access_token)
 
     @qml.qnode(dev)
     def circuit():
-        qml.X(0)
-        qml.CNOT([0, 1])
-        qml.CNOT([1, 2])
-        return qml.counts(wires = [0, 1, 2])
-
-    circuit()
-
+        qml.Hadamard(0)
+        return qml.counts(wires = list(range(num_wires)))
+    result = { k[0]:int(k[1]) for k in circuit().items() }
+    print(qml.draw(circuit)())
+    print(result)

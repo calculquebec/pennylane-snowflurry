@@ -1,7 +1,7 @@
 from typing import Callable, TypeVar
+from optimization_utility import T, U
 
-T = TypeVar("T")
-def compute_lps_array(pattern : list[T], compare : Callable[[T, T], bool]) ->list[int]:
+def _compute_lps_array(pattern : list[T], compare : Callable[[T, T], bool]) ->list[int]:
     """
     Compute the longest prefix suffix (LPS) array used in KMP algorithm.
     :param pattern: The pattern for which to compute the LPS array.
@@ -28,16 +28,16 @@ def compute_lps_array(pattern : list[T], compare : Callable[[T, T], bool]) ->lis
 
 def kmp_search(array : list[T], pattern : list[T], compare : Callable[[T, T], bool]) -> list[int]:
     """
-    Perform KMP search of `pattern` in `text`.
-    :param text: The text to search within.
+    Perform KMP search of `pattern` in `array`.
+    :param array: The array to search within.
     :param pattern: The pattern to search for.
-    :return: List of starting indices where the pattern is found in the text.
+    :return: the first starting index where the pattern is found in the array.
     """
     n = len(array)
     m = len(pattern)
-    lps = compute_lps_array(pattern, compare)
+    lps = _compute_lps_array(pattern, compare)
     
-    i = 0  # index for text
+    i = 0  # index for array
     j = 0  # index for pattern
     
     while i < n:
