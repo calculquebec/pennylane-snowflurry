@@ -93,7 +93,6 @@ class TDagger(Operation):
         return [np.pi / 4, 0, 0]
 
 
-
 class X90(Operation):
     r"""RX(pi/2)(wires)
     The single-qubit rotation of 90 degrees around the X axis
