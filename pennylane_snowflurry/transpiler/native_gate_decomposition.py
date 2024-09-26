@@ -165,17 +165,8 @@ def native_gate_decomposition(tape : QuantumTape, exclude_list : list[str] = Non
     
     new_operations = []
 
-    # We define a custom expansion function here to convert everything except
-    # the gates identified in exclude_list to gates with known decompositions.
-    def stop_at(op):
-        return op.name in _decomp_map or op.name in exclude_list
-
-    custom_expand_fn = qml.transforms.create_expand_fn(depth=9, stop_at=stop_at)
-
     with qml.QueuingManager.stop_recording():
-        expanded_tape = custom_expand_fn(tape)
-
-        for op in expanded_tape.operations:
+        for op in tape.operations:
             if op.name not in exclude_list and op.name in _decomp_map:
                 if op.num_params > 0:
                     new_operations.extend(_decomp_map[op.name](*op.data, op.wires))

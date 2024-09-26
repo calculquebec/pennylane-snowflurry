@@ -31,5 +31,6 @@ def swap_routing(tape : QuantumTape):
         else:
             new_operations += [oper]
 
-        
-    return tape
+    new_tape = type(tape)(new_operations, tape.measurements, shots=tape.shots)
+
+    return new_tape

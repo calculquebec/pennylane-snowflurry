@@ -112,13 +112,17 @@ if __name__ == "__main__":
     from dotenv import dotenv_values
     import pennylane as qml
 
-    num_wires = 1
-    dev = MonarqDevice(num_wires, 10, const.host, const.user, const.access_token)
+    num_wires = 7
+    dev = MonarqDevice(num_wires, 1000, const.host, const.user, const.access_token)
 
     @qml.qnode(dev)
     def circuit():
         qml.Hadamard(0)
+        for n in range(1, num_wires):
+            qml.CNOT([0, n])
         return qml.counts(wires = list(range(num_wires)))
+
     result = { k[0]:int(k[1]) for k in circuit().items() }
     print(qml.draw(circuit)())
     print(result)
+
