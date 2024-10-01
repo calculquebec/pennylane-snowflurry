@@ -36,7 +36,7 @@ pip install -e .
 
 Pennylane and other Python dependencies will be installed automatically during the installation process.
 
-The plugin will also take care of installing Julia and the required Julia packages, such as Snowflurry, PythonCall during the first run. Some notes on that matter are provided below.
+The plugin will also take care of installing Julia and the required Julia packages, such as Snowflurry and PythonCall during the first run. Some notes on that matter are provided below.
 
 If you wish to disable this behaviour, you can edit the julia_env.py file and set the value of the variable `IS_USER_CONFIGURED` to `TRUE`:
 
