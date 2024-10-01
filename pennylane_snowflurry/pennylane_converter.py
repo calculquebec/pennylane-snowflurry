@@ -1,9 +1,7 @@
 from juliacall import newmodule
 import pennylane as qml
-from pennylane.tape import QuantumTape, QuantumScript
-from pennylane.typing import Result, ResultBatch
-import numpy as np
-from collections import Counter
+from pennylane.tape import QuantumTape
+from pennylane.typing import Result
 from pennylane.measurements import (
     StateMeasurement,
     MeasurementProcess,
@@ -12,12 +10,22 @@ from pennylane.measurements import (
     SampleMP,
     ExpectationMP,
     CountsMP,
+    StateMP,
 )
 import time
 import re
 from pennylane.typing import TensorLike
-from typing import Callable
+from typing import Callable, Type
 from pennylane.ops import Sum, Hamiltonian
+
+from pennylane_snowflurry.measurements import (
+    MeasurementStrategy,
+    Sample,
+    Counts,
+    Probabilities,
+    ExpectationValue,
+    State
+)
 
 # Dictionary mapping PennyLane operations to Snowflurry operations
 # The available Snowflurry operations are listed here:
@@ -95,12 +103,14 @@ class PennylaneConverter:
         access_token="",
         project_id="",
         realm="",
-    ) -> Result:
+        wires=None
+    ):
 
         # Instance attributes related to PennyLane
         self.pennylane_circuit = pennylane_circuit
         self.debugger = debugger
         self.interface = interface
+        self.wires = wires
 
         # Instance attributes related to Snowflurry
         self.snowflurry_py_circuit = None
@@ -108,7 +118,6 @@ class PennylaneConverter:
             len(host) != 0
             and len(user) != 0
             and len(access_token) != 0
-            and len(project_id) != 0
             and len(realm) != 0
         ):
             Snowflurry.currentClient = Snowflurry.Client(
@@ -118,30 +127,30 @@ class PennylaneConverter:
         else:
             Snowflurry.currentClient = None
 
+        self.measurementStrategy = None
+
     def simulate(self):
         self.snowflurry_py_circuit = self.convert_circuit(
-            self.pennylane_circuit, debugger=self.debugger, interface=self.interface
+            self.pennylane_circuit
         )
         return self.measure_final_state()
 
     def convert_circuit(
-        self, pennylane_circuit: QuantumTape, debugger=None, interface=None
+        self, pennylane_circuit: QuantumTape,
     ):
         """
         Convert the received pennylane circuit into a snowflurry device in julia.
         It is then store into Snowflurry.sf_circuit
 
         Args:
-            circuit (QuantumTape): The circuit to simulate.
-            debugger (optional): Debugger instance, if debugging is needed.
-            interface (str, optional): The interface to use for any necessary conversions.
+            pennylane_circuit (QuantumTape): The circuit to simulate.
 
         Returns:
             Tuple[TensorLike, bool]: A tuple containing the final state of the quantum script and
                 a boolean indicating if the state has a batch dimension.
         """
 
-        wires_nb = len(pennylane_circuit.wires)
+        wires_nb = self.wires  # default number of wires in the circuit
         Snowflurry.sf_circuit = Snowflurry.QuantumCircuit(qubit_count=wires_nb)
 
         prep = None
@@ -151,7 +160,7 @@ class PennylaneConverter:
             prep = pennylane_circuit[0]
 
         # Add gates to Snowflurry circuit
-        for op in pennylane_circuit.map_to_standard_wires().operations[bool(prep) :]:
+        for op in pennylane_circuit.operations[bool(prep):]:
             if op.name in SNOWFLURRY_OPERATION_MAP:
                 if SNOWFLURRY_OPERATION_MAP[op.name] == NotImplementedError:
                     print(f"{op.name} is not implemented yet, skipping...")
@@ -164,18 +173,17 @@ class PennylaneConverter:
 
         return Snowflurry.sf_circuit
 
-    def apply_readouts(self, wires_nb, obs):
+    def apply_readouts(self, obs):
         """
         Apply readouts to all wires in the snowflurry circuit.
 
         Args:
-            wires_nb (int): The number of wires in the circuit.
             obs (Optional[Observable]): The observable mentioned in the measurement process. If None,
                 readouts are applied to all wires because we assume the user wants to measure all wires.
         """
 
         if obs is None:  # if no observable is given, we apply readouts to all wires
-            for wire in range(wires_nb):
+            for wire in range(self.wires):
                 Snowflurry.seval(f"push!(sf_circuit, readout({wire + 1}, {wire + 1}))")
 
         else:
@@ -311,11 +319,6 @@ class PennylaneConverter:
 
         This is an internal function that will be called by the successor to ``default.qubit``.
 
-        Args:
-            circuit (.QuantumTape): The single circuit to simulate
-            sf_circuit : The snowflurry circuit used
-            is_state_batched (bool): Whether the state has a batch dimension or not.
-
         Returns:
             Tuple[TensorLike]: The measurement results
         """
@@ -330,11 +333,11 @@ class PennylaneConverter:
 
         if len(circuit.measurements) == 1:
             results = self.measure(
-                circuit.measurements[0], self.snowflurry_py_circuit, shots
+                circuit.measurements[0], shots
             )
         else:
             results = tuple(
-                self.measure(mp, self.snowflurry_py_circuit, shots)
+                self.measure(mp, shots)
                 for mp in circuit.measurements
             )
 
@@ -342,13 +345,12 @@ class PennylaneConverter:
 
         return results
 
-    def measure(self, mp: MeasurementProcess, sf_circuit, shots):
+    def measure(self, mp: MeasurementProcess, shots):
         """
         Measure the quantum state using the provided measurement process.
 
         Args:
             mp (MeasurementProcess): The measurement process to perform
-            sf_circuit : The snowflurry circuit used
             shots (int): The number of shots
 
         Returns:
@@ -362,86 +364,29 @@ class PennylaneConverter:
             - state(works with Snowflurry.simulate and Snowflurry.result_state)
 
         """
+        self.measurementStrategy = self.get_strategy(mp)
+        result = self.measurementStrategy.measure(self, mp, shots)
+        return result
 
-        # if measurement is a qml.counts
-        if isinstance(mp, CountsMP):  # this measure can run on hardware
-            if Snowflurry.currentClient is None:
-                # since we use simulate_shots, we need to add readouts to the circuit
-                self.remove_readouts()
-                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
-                shots_results = Snowflurry.simulate_shots(Snowflurry.sf_circuit, shots)
-                result = dict(Counter(shots_results))
-                return result
-            else:  # if we have a client, we use the real machine
-                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
-                qpu = Snowflurry.AnyonYukonQPU(
-                    Snowflurry.currentClient, Snowflurry.seval("project_id")
-                )
-                shots_results = Snowflurry.run_job(
-                    qpu,
-                    Snowflurry.transpile(
-                        Snowflurry.get_transpiler(qpu), Snowflurry.sf_circuit
-                    ),
-                    shots,
-                )
-                result = dict(Counter(shots_results))
-                return result
+    def get_strategy(self, mp: MeasurementProcess):
+        """
+        Get the strategy to use for the measurement process.
 
-        # if measurement is a qml.sample
-        if isinstance(mp, SampleMP):  # this measure can run on hardware
-            if Snowflurry.currentClient is None:
-                # since we use simulate_shots, we need to add readouts to the circuit
-                self.remove_readouts()
-                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
-                shots_results = Snowflurry.simulate_shots(Snowflurry.sf_circuit, shots)
-                return np.asarray(shots_results).astype(int)
-            else:  # if we have a client, we use the real machine
-                self.apply_readouts(len(self.pennylane_circuit.op_wires), mp.obs)
-                qpu = Snowflurry.AnyonYukonQPU(
-                    Snowflurry.currentClient, Snowflurry.seval("project_id")
-                )
-                shots_results = Snowflurry.run_job(
-                    qpu,
-                    Snowflurry.transpile(
-                        Snowflurry.get_transpiler(qpu), Snowflurry.sf_circuit
-                    ),
-                    shots,
-                )
-                return np.repeat(
-                    [int(key) for key in shots_results.keys()],
-                    [value for value in shots_results.values()],
-                )
+        Args:
+            mp (MeasurementProcess): The measurement process to perform
 
-        # if measurement is a qml.probs
-        if isinstance(mp, ProbabilityMP):
-            self.remove_readouts()
-            wires_list = mp.wires.tolist()
-            if len(wires_list) == 0:
-                return Snowflurry.get_measurement_probabilities(Snowflurry.sf_circuit)
-            else:
-                return Snowflurry.get_measurement_probabilities(
-                    Snowflurry.sf_circuit, [i + 1 for i in wires_list]
-                )
-
-        # if measurement is a qml.expval
-        if isinstance(mp, ExpectationMP):
-            # FIXME : this measurement only works with a single wire
-            # Requires some processing to work with larger matrices
-            self.remove_readouts()
-            Snowflurry.result_state = Snowflurry.simulate(Snowflurry.sf_circuit)
-            if mp.obs is not None and mp.obs.has_matrix:
-                print(type(mp.obs))
-                observable_matrix = qml.matrix(mp.obs)
-                return Snowflurry.expected_value(
-                    Snowflurry.DenseOperator(observable_matrix), Snowflurry.result_state
-                )
-
-        # if measurement is a qml.state
-        if isinstance(mp, StateMeasurement):
-            self.remove_readouts()
-            Snowflurry.result_state = Snowflurry.simulate(Snowflurry.sf_circuit)
-            # Convert the final state from pyjulia to a NumPy array
-            final_state_np = np.array([element for element in Snowflurry.result_state])
-            return final_state_np
-
-        return NotImplementedError
+        Returns:
+            MeasurementStrategy: The strategy to use for the measurement process
+        """
+        if isinstance(mp, CountsMP):
+            return Counts()
+        elif isinstance(mp, SampleMP):
+            return Sample()
+        elif isinstance(mp, ProbabilityMP):
+            return Probabilities()
+        elif isinstance(mp, ExpectationMP):
+            return ExpectationValue()
+        elif isinstance(mp, StateMP):
+            return State()
+        else:
+            raise ValueError(f"Measurement process {mp} is not supported by this device.")

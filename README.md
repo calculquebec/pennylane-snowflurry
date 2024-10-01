@@ -81,7 +81,7 @@ dev_def = qml.device("snowflurry.qubit", wires=1, shots=50)
 Example if you have an API key from Anyon Systems:
 
 ```py
-dev_def = qml.device("snowflurry.qubit", wires=1, shots=50, host="example.anyonsys.com", user="test_user",access_token="not_a_real_access_token")
+dev_def = qml.device("snowflurry.qubit", wires=1, shots=50, host="example.anyonsys.com", user="test_user",access_token="not_a_real_access_token", realm="realm_name")
 ```
 
 ## State of the project and known issues
@@ -91,3 +91,5 @@ This plugin is still very early in its development and aims to provide a basic i
 ### Future plans
 
 - Add a test suite to ensure the plugin works as expected.
+- Integrate a compiler to optimize the circuits.
+- Add device that allows for communication with MonarQ directly through its API.
