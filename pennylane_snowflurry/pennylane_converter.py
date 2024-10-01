@@ -127,7 +127,7 @@ class PennylaneConverter:
         else:
             Snowflurry.currentClient = None
 
-        self.strategy = None
+        self.measurementStrategy = None
 
     def simulate(self):
         self.snowflurry_py_circuit = self.convert_circuit(
@@ -364,8 +364,8 @@ class PennylaneConverter:
             - state(works with Snowflurry.simulate and Snowflurry.result_state)
 
         """
-        strategy = self.get_strategy(mp)
-        result = strategy.measure(self, mp, shots)
+        self.measurementStrategy = self.get_strategy(mp)
+        result = self.measurementStrategy.measure(self, mp, shots)
         return result
 
     def get_strategy(self, mp: MeasurementProcess):
