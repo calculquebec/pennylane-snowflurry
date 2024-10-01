@@ -36,7 +36,7 @@ pip install -e .
 
 Pennylane and other Python dependencies will be installed automatically during the installation process.
 
-The plugin will also take care of installing Julia and the required Julia packages, such as Snowflurry, PythonCall during the first run. Some notes on that matter are provided below.
+The plugin will also take care of installing Julia and the required Julia packages, such as Snowflurry and PythonCall during the first run. Some notes on that matter are provided below.
 
 If you wish to disable this behaviour, you can edit the julia_env.py file and set the value of the variable `IS_USER_CONFIGURED` to `TRUE`:
 
@@ -81,7 +81,7 @@ dev_def = qml.device("snowflurry.qubit", wires=1, shots=50)
 Example if you have an API key from Anyon Systems:
 
 ```py
-dev_def = qml.device("snowflurry.qubit", wires=1, shots=50, host="example.anyonsys.com", user="test_user",access_token="not_a_real_access_token")
+dev_def = qml.device("snowflurry.qubit", wires=1, shots=50, host="example.anyonsys.com", user="test_user",access_token="not_a_real_access_token", realm="realm_name")
 ```
 
 ## State of the project and known issues
@@ -91,3 +91,5 @@ This plugin is still very early in its development and aims to provide a basic i
 ### Future plans
 
 - Add a test suite to ensure the plugin works as expected.
+- Integrate a compiler to optimize the circuits.
+- Add device that allows for communication with MonarQ directly through its API.
