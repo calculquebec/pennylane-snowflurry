@@ -1,0 +1,4 @@
+matplotlib
+pytest
+pytest-mock
+flaky
