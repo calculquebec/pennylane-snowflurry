@@ -15,15 +15,16 @@ class TestSnowflurryQubitDeviceInitialization(unittest.TestCase):
         seed = 42
 
         # Create an instance of the SnowflurryQubitDevice
-        device = SnowflurryQubitDevice(wires=num_wires, shots=num_shots, seed=seed)
+        device = SnowflurryQubitDevice(wires=num_wires, shots=num_shots)
 
         self.assertEqual(device.num_wires, num_wires)
 
-        self.assertEqual(device.shots, num_shots)
+        self.assertEqual(device.shots.total_shots, num_shots)
 
-    def test_hadamard_pyjulia(self):
-        c = Snowflurry.QuantumCircuit(qubit_count=3)
-        Snowflurry.seval("jl.eval('push!(c,hadamard(1))')")
+
+    def test_hadamard_juliacall(self):
+        Snowflurry.c = Snowflurry.QuantumCircuit(qubit_count=3)
+        Snowflurry.seval("push!(c,hadamard(1))")
 
 
 if __name__ == "__main__":
