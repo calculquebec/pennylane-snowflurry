@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools>=61.0", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -44,7 +44,7 @@ test = ["matplotlib", "pytest", "pytest-mock", "flaky"]
 [project.entry-points."pennylane.io"]
 
 [tool.setuptools]
-packages = ["pennylane_snowflurry"]
+packages = ["pennylane_snowflurry", "pennylane_snowflurry.measurements"]
 
 [tool.setuptools.dynamic]
 version = { attr = "pennylane_snowflurry._version.__version__" }
