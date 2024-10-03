@@ -36,7 +36,7 @@ classifiers = [
 Source = "https://github.com/calculquebec/pennylane-snowflurry"
 
 [project.optional-dependencies]
-# No optional dependencies yet
+test = ["matplotlib", "pytest", "pytest-mock", "flaky"]
 
 [project.entry-points."pennylane.plugins"]
 "snowflurry.qubit" = "pennylane_snowflurry:SnowflurryQubitDevice"
