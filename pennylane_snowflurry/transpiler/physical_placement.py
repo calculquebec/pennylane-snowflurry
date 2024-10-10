@@ -140,7 +140,7 @@ def _node_with_shortest_path_from_selection(source : int, selection : list[int],
     # return min(all_unmapped_nodes, key = lambda n : len(_shortest_path(source, n, graph, mapping_minus_source)))
 
 def physical_placement(tape : QuantumTape) -> QuantumTape:
-    # on veut que les fils soient mappés à des qubits de la machine en fonction d'un isomorphisme ou d'un placement efficace
+    # on veut que les fils soient mappï¿½s ï¿½ des qubits de la machine en fonction d'un isomorphisme ou d'un placement efficace
     
     broken_nodes, broken_couplers = get_broken_infra()
     circuit_topology = circuit_graph(tape)
@@ -158,7 +158,7 @@ def physical_placement(tape : QuantumTape) -> QuantumTape:
         
         for node in missing:
             most_connected_node = _most_connected_node(node, circuit_topology)
-            # 4. trouver un noeud du circuit (b) qui minimise le chemin entre b et le noeud a non-mappé
+            # 4. trouver un noeud du circuit (b) qui minimise le chemin entre b et le noeud a non-mappï¿½
             # shortest_path_node = _node_with_shortest_path_from_selection(node, mapping.keys(), circuit_topology)
             # 5. trouver un noeud dans la machine (a') qui minimise le chemin entre a' et b'
             

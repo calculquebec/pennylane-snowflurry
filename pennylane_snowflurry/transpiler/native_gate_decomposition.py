@@ -26,10 +26,10 @@ def _custom_cy(wires):
         + _custom_sdag(wires[1]) \
         + _custom_h(wires[1])
 
-def _custom_rz(angle : float, wires):
+def _custom_rz(angle : float, wires, epsilon = 1E-8):
     while angle < 0: angle += np.pi * 2
     angle %= np.pi * 2
-    is_close_enough_to = lambda other_angle: np.abs(angle - other_angle) < 0.001
+    is_close_enough_to = lambda other_angle: np.abs(angle - other_angle) < epsilon
 
     if is_close_enough_to(0): return []
     elif is_close_enough_to(np.pi/4): return [qml.T(wires = wires)]
@@ -39,7 +39,7 @@ def _custom_rz(angle : float, wires):
     elif is_close_enough_to(np.pi): return [qml.PauliZ(wires = wires)]
 
     result = []
-    # rotate ±pi/2 while necessary
+    # rotate ï¿½pi/2 while necessary
     while(np.abs(angle) > np.pi/2):
         if(angle < 0):
             result += _custom_sdag(wires = wires)
@@ -48,7 +48,7 @@ def _custom_rz(angle : float, wires):
             result += _custom_s(wires = wires)
             angle -= np.pi/2
 
-    # rotate ±pi/4 if necessary
+    # rotate ï¿½pi/4 if necessary
     while(np.abs(angle) > np.pi/4):
         if(angle < 0):
             result += custom.TDagger(wires=wires)
@@ -62,10 +62,10 @@ def _custom_rz(angle : float, wires):
 
     return result
 
-def _custom_rx(angle : float, wires):
+def _custom_rx(angle : float, wires, epsilon = 1E-8):
     while angle < 0: angle += np.pi * 2
     angle %= np.pi * 2
-    is_close_enough_to = lambda other_angle: np.abs(angle - other_angle) < 0.001
+    is_close_enough_to = lambda other_angle: np.abs(angle - other_angle) < epsilon
 
     if is_close_enough_to(0): return []
     elif is_close_enough_to(np.pi/2): return [custom.X90(wires = wires)]
@@ -73,7 +73,7 @@ def _custom_rx(angle : float, wires):
     elif is_close_enough_to(np.pi): return [qml.PauliX(wires = wires)]
 
     result = []
-    # rotate ±pi/2 while necessary
+    # rotate ï¿½pi/2 while necessary
     while(np.abs(angle) > np.pi/2):
         if(angle < 0):
             result += _custom_sdag(0)
@@ -83,7 +83,7 @@ def _custom_rx(angle : float, wires):
             angle -= np.pi/2
 
     result += _custom_h(wires = wires)
-    # rotate ±pi/4 if necessary
+    # rotate ï¿½pi/4 if necessary
     while(np.abs(angle) > np.pi/4):
         if(angle < 0):
             result += _custom_tdag(0)
@@ -99,18 +99,19 @@ def _custom_rx(angle : float, wires):
 
     return result
 
-def _custom_ry(angle : float, wires):
+def _custom_ry(angle : float, wires, epsilon = 1E-8):
     while angle < 0: angle += np.pi * 2
     angle %= np.pi * 2
-    is_close_enough_to = lambda other_angle: np.abs(angle - other_angle) < 0.001
+    is_close_enough_to = lambda other_angle: np.abs(angle - other_angle) < epsilon
 
     if is_close_enough_to(0): return []
     elif is_close_enough_to(np.pi/2): return [custom.Y90(wires = wires)]
     elif is_close_enough_to(-np.pi/2): return [custom.YM90(wires = wires)]
     elif is_close_enough_to(np.pi): return [qml.PauliY(wires = wires)]
+    else: return [qml.PhaseShift(angle, wires = wires)]
 
     result = []
-    # rotate ±pi/2 while necessary
+    # rotate ï¿½pi/2 while necessary
     while(np.abs(angle) > np.pi/2):
         if(angle < 0):
             result += custom.YM90(wires = wires)
@@ -121,7 +122,7 @@ def _custom_ry(angle : float, wires):
 
     result += _custom_h(wires = wires)
     result += _custom_s(wires = wires)
-    # rotate ±pi/4 if necessary
+    # rotate ï¿½pi/4 if necessary
     while(np.abs(angle) > np.pi/4):
         if(angle < 0):
             result += _custom_tdag(0)
@@ -157,7 +158,7 @@ _decomp_map = {
 
 def native_gate_decomposition(tape : QuantumTape, exclude_list : list[str] = None):
     from pennylane.ops.op_math import SProd
-    # décomposer toutes les portes non-natives en porte natives
+    # dï¿½composer toutes les portes non-natives en porte natives
     if exclude_list is None:
         exclude_list = []
     

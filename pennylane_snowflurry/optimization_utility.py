@@ -117,7 +117,6 @@ def is_controlled_axis_gate(op : Operation, axis : str):
         return False
     return op.base.basis == axis
 
-
 def normalize_angle(angle : float, epsilon = 1E-8) -> float:
         while angle > np.pi * 2 - epsilon:
             angle -= np.pi * 2

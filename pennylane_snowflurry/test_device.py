@@ -14,7 +14,7 @@ from api_adapter import instructions
 # from custom_decomposition import thunderhead_decompose
 from transpiler.monarq_transpile import transpile
 
-class MonarqDevice(Device):
+class TestDevice(Device):
     name = "MonarQDevice"
     short_name = "monarq.qubit"
     pennylane_requires = ">=0.30.0"
@@ -87,13 +87,5 @@ class MonarqDevice(Device):
             # Fallback or default behavior if execution_config is not an instance of ExecutionConfig
             interface = None
             
-        results = [Job(host=self.host, 
-                       user=self.user, 
-                       access_token=self.access_token, 
-                       realm=MonarqDevice.realm)
-                   .run(circ, 
-                        MonarqDevice.circuit_name, 
-                        MonarqDevice.project_id, 
-                        MonarqDevice.machine_name) for circ in circuits]
-        
-        return results if not is_single_circuit else results[0]
+        dev = qml.device("default.qubit")
+        qml.execute(circuits, dev)

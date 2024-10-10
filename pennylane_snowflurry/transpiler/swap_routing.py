@@ -10,14 +10,14 @@ def _is_directly_connected(op : Operation, machine_topology : nx.Graph) -> bool:
 
 # TODO : there are better alternatives than using swap gates
 def swap_routing(tape : QuantumTape):
-    # en fonction du mappage choisi, connecter les qubits non-couplés à la position des portes touchées en utilisant des swaps
+    # en fonction du mappage choisi, connecter les qubits non-couplÃ©s Ã  la position des portes touchÃ©es en utilisant des swaps
     broken_nodes, broken_couplers = get_broken_infra()
     machine_topology = machine_graph(broken_nodes, broken_couplers)
     new_operations : list[Operation] = []
     list_copy = tape.operations.copy()
 
     for oper in list_copy:
-        # s'il s'agit d'une porte à 2 qubit n'étant pas placée sur un coupleur physique, 
+        # s'il s'agit d'une porte Ã  2 qubit n'Ã©tant pas placÃ©e sur un coupleur physique, 
         # on la route avec des cnots en utilisant astar
         if oper.num_wires == 2 and not _is_directly_connected(oper, machine_topology):
             path = _shortest_path(oper.wires[0], oper.wires[1], machine_topology)
