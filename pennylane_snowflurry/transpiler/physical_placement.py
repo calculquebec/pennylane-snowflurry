@@ -97,20 +97,17 @@ def machine_graph(broken_nodes : list[int] = [], broken_couplers : list[list[int
     return nx.Graph([i for i in links if i[0] not in broken_nodes and i[1] not in broken_nodes \
             and i not in broken_couplers and list(reversed(i)) not in broken_couplers])
 
-# TODO : try to make it work with networkx instead of handwritten algo
-def _find_isomorphisms(circuit : nx.Graph, machine : nx.Graph) -> dict[int, int]:
-    vf2 = VF2(circuit, machine)
-    isomorphisms = vf2.find_subgraph_isomorphisms()
-    return isomorphisms
-
 def _find_largest_subgraph_isomorphism(circuit : nx.Graph, machine : nx.Graph):
     from itertools import combinations
-
-    edges = [e for e in circuit.edges]
-    for i in reversed(range(len(edges) + 1)):
-        for comb in combinations(edges, i):
-            result = _find_isomorphisms(nx.Graph(comb), machine)
-            if result: return result
+    from networkx.algorithms.isomorphism import GraphMatcher
+ 
+    for i in reversed(range(len(circuit.edges) + 1)):
+        for combination in combinations(circuit.edges, i):
+            sub_circuit = nx.Graph(combination)
+            matcher = GraphMatcher(machine, sub_circuit)
+            if(matcher.subgraph_is_monomorphic()):
+                result = next(matcher.subgraph_monomorphisms_iter())
+                return dict((v, k) for k, v in result.items())
 
 def _most_connected_node(source : int, graph : nx.Graph):
     """
@@ -147,21 +144,18 @@ def physical_placement(tape : QuantumTape) -> QuantumTape:
     machine_topology = machine_graph(broken_nodes, broken_couplers)
 
     
-    # 1. trouver un isomorphisme entre le circuit et la machine
-    mapping = _find_isomorphisms(circuit_topology, machine_topology)
+    # 1. trouver l'isomorphisme de sous-graph le plus grand pour le circuit
+    mapping = _find_largest_subgraph_isomorphism(circuit_topology, machine_topology)
 
-    if mapping is None: 
-        # 2. si aucun isomorphisme n'existe, trouver un isomorphisme entre le sous-graphe le plus gros du circuit et la machine
-        mapping = _find_largest_subgraph_isomorphism(circuit_topology, machine_topology)
-        # 3. identifier les noeuds du circuit manquant dans le mapping (a)
+    # s'il manque des noeuds
+    if len(mapping) < len(circuit_topology.nodes):
+        # 2. identifier les noeuds du circuit manquant dans le mapping (a)
         missing = [node for node in circuit_topology.nodes if node not in mapping.keys()]
         
         for node in missing:
+            # 3. trouver le noeud (b) le plus connecté au noeud manquant (a) dans le circuit
             most_connected_node = _most_connected_node(node, circuit_topology)
-            # 4. trouver un noeud du circuit (b) qui minimise le chemin entre b et le noeud a non-mappé
-            # shortest_path_node = _node_with_shortest_path_from_selection(node, mapping.keys(), circuit_topology)
-            # 5. trouver un noeud dans la machine (a') qui minimise le chemin entre a' et b'
-            
+            # 4. trouver un noeud dans la machine (a') qui minimise le chemin entre a' et b'
             possibles = [n for n in machine_topology.nodes if n not in mapping.values()]
             shortest_path_mapping = _node_with_shortest_path_from_selection(mapping[most_connected_node], possibles, machine_topology)
             

@@ -13,11 +13,13 @@ import transpiler.physical_optimization as step6
 def transpile(tape : QuantumTape):
     optimized_tape = deepcopy(tape)
     with qml.QueuingManager.stop_recording():
+        # optimized_tape = step3.physical_placement(optimized_tape)
+        # optimized_tape = step4.swap_routing(optimized_tape)
         optimized_tape = step1.multiple_gate_decomposition(optimized_tape)
-        optimized_tape = step2.virtual_optimisation(optimized_tape)
-        optimized_tape = step3.physical_placement(optimized_tape)
-        optimized_tape = step4.swap_routing(optimized_tape)
-        optimized_tape = step5.native_gate_decomposition(optimized_tape)
-        optimized_tape = step6.physical_optimization(optimized_tape)
+        # optimized_tape = step5.native_gate_decomposition(optimized_tape)
+       
+        optimized_tape = step2.optimize(optimized_tape)
+        # print(to_qasm(optimized_tape))
+        # print("barrier q;")
     new_tape = type(tape)(optimized_tape.operations, optimized_tape.measurements, shots=optimized_tape.shots)
     return [new_tape], lambda results : results[0]

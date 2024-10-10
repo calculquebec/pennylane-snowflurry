@@ -7,7 +7,7 @@ def multiple_gate_decomposition(tape : QuantumTape):
 
     def stop_at(op : Operation):
         # TODO : voir quelles portes on veut stop at
-        return op.name in ["T", "PauliX", "PauliY", "PauliZ", "S", "Hadamard", "CZ"]
+        return op.name in ["T", "Adjoint(T)", "S", "Adjoint(S)", "PauliX", "PauliY", "PauliZ", "CZ", "CNOT", "Hadamard", "RX", "RY", "RZ"]
 
     # pennylane create_expand_fn does the job for us 
     custom_expand_fn = transforms.create_expand_fn(depth=9, stop_at=stop_at)

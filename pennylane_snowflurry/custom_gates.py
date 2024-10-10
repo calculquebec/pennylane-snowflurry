@@ -70,7 +70,7 @@ class TDagger(Operation):
             list[Operator]: decomposition into lower level operations
 
         """
-        return [qml.adjoint(qml.T(qml.T)(wires))]
+        return [qml.adjoint(qml.T)(wires)]
 
     def pow(self, z):
         z = z % 8
@@ -110,7 +110,7 @@ class X90(Operation):
     num_params = 0
     """int: Number of trainable parameters that the operator depends on."""
 
-    basis = "Z"
+    basis = "X"
 
     batch_size = None
     
@@ -189,7 +189,7 @@ class XM90(Operation):
     num_params = 0
     """int: Number of trainable parameters that the operator depends on."""
 
-    basis = "Z"
+    basis = "X"
 
     batch_size = None
     @staticmethod
@@ -267,7 +267,7 @@ class Y90(Operation):
     num_params = 0
     """int: Number of trainable parameters that the operator depends on."""
 
-    basis = "Z"
+    basis = "Y"
 
     batch_size = None
     
@@ -346,7 +346,7 @@ class YM90(Operation):
     num_params = 0
     """int: Number of trainable parameters that the operator depends on."""
 
-    basis = "Z"
+    basis = "Y"
 
     batch_size = None
     @staticmethod

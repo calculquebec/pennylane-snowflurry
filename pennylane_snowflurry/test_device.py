@@ -1,29 +1,17 @@
-from functools import partial
-import numpy
-import pennylane_snowflurry.custom_gates as custom
 from typing import Tuple
+import numpy as np
 import pennylane as qml
 from pennylane.devices import Device
 from pennylane.transforms.core import TransformProgram
 from pennylane.tape import QuantumScript, QuantumTape
 from execution_config import DefaultExecutionConfig, ExecutionConfig
-from pennylane import transform
-import pennylane.transforms as transforms
-from api_job import Job
 from api_adapter import instructions
 # from custom_decomposition import thunderhead_decompose
 from transpiler.monarq_transpile import transpile
 
-class MonarqDevice(Device):
+class TestDevice(Device):
     name = "MonarQDevice"
     short_name = "monarq.qubit"
-    pennylane_requires = ">=0.30.0"
-    author = "CalculQuébec"
-    
-    realm = "calculqc"
-    circuit_name = "test circuit"
-    project_id = ""
-    machine_name = "yamaska"
     
     operations = {
         key for key in instructions.keys()
@@ -33,15 +21,9 @@ class MonarqDevice(Device):
         "PauliZ"
     }
     
-    def __init__(self, wires, shots, host = "", user = "", access_token = "") -> None:
-        super().__init__(wires=wires, shots=shots)
-        self.host = host
-        self.user = user
-        self.access_token = access_token
-    
     @property
     def name(self):
-        return MonarqDevice.short_name
+        return TestDevice.short_name
     
     def preprocess(
         self,
@@ -86,43 +68,8 @@ class MonarqDevice(Device):
         else:
             # Fallback or default behavior if execution_config is not an instance of ExecutionConfig
             interface = None
-            
-        results = [Job(host=self.host, 
-                       user=self.user, 
-                       access_token=self.access_token, 
-                       realm=MonarqDevice.realm)
-                   .run(circ, 
-                        MonarqDevice.circuit_name, 
-                        MonarqDevice.project_id, 
-                        MonarqDevice.machine_name) for circ in circuits]
         
+        dev = qml.device("default.qubit", wires=24, shots=self.shots)
+
+        results = qml.execute(circuits, dev)
         return results if not is_single_circuit else results[0]
- 
-if __name__ == "__main__":
-    import numpy as np
-    class const:
-        host = "https://manager.anyonlabs.com"
-        user = "stage"
-        access_token = "FjjIKjmDMoAMzSO4v2Bu62a+8vD39zib"
-        realm = "calculqc"
-        machine_name = "yamaska"
-        project_id = "default"
-        circuit_name = "test_circuit"
-    
-    from dotenv import dotenv_values
-    import pennylane as qml
-
-    num_wires = 7
-    dev = MonarqDevice(num_wires, 1000, const.host, const.user, const.access_token)
-
-    @qml.qnode(dev)
-    def circuit():
-        qml.Hadamard(0)
-        for n in range(1, num_wires):
-            qml.CNOT([0, n])
-        return qml.counts(wires = list(range(num_wires)))
-
-    result = { k[0]:int(k[1]) for k in circuit().items() }
-    print(qml.draw(circuit)())
-    print(result)
-
