@@ -49,3 +49,25 @@ def commutation_test():
     qml.RZ(2.4, wires=[1])
 
     return qml.probs(wires=[0,1,2])
+
+def GHZ(num_wires):
+    qml.Hadamard(0)
+    [qml.CNOT([0, i]) for i in range(num_wires)]
+    return qml.probs()
+
+def bernstein_varizani(number : int):
+    value = []
+    while number > 0:
+        value.insert(0, (number & 1) != 0)
+        number = number >> 1
+
+    num_wires = len(value) + 1
+    [qml.Hadamard(i) for i in range(num_wires)]
+    qml.Z(num_wires-1)
+        
+    # Uf
+    [qml.CNOT([i, num_wires - 1]) for i, should in enumerate(value) if should]
+        
+    [qml.Hadamard(i) for i in range(num_wires - 1)]
+    return qml.probs(wires=[i for i in range(num_wires - 1)])
+    
