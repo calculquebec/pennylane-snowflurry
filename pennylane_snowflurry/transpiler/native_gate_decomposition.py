@@ -4,8 +4,6 @@ import custom_gates as custom
 import numpy as np
 
 
-epsilon = 0.001
-
 def _custom_tdag(wires):
     return [custom.TDagger(wires)]
 

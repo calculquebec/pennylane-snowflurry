@@ -1,36 +1,54 @@
 import numpy as np
-from pennylane.operation import Operation
+import pennylane as qml
 from pennylane.tape import QuantumTape
+from pennylane_snowflurry.optimization_utility import expand, is_single_axis_gate
+from pennylane_snowflurry.debug_utility import to_qasm
 import pennylane.transforms as transforms
+from pennylane_snowflurry.optimization_methods.commute_and_merge import base_optimisation
 
-epsilon = 0.00001
+def HCZH_cnot(wires):
+    return [
+        qml.Hadamard(wires[1]),
+        qml.CZ(wires),
+        qml.Hadamard(wires[1])
+    ]
 
-def virtual_optimisation(tape : QuantumTape):
-    # optimiser les portes du circuit tel-quel avant de mapper les fils et de décomposer les portes non-natives
-    # tape = transforms.cancel_inverses(tape)[0][0]
-    # tape = transforms.cancel_inverses(tape)[0][0]
-    # tape = transforms.
-    return tape
+def ZXZ_Hadamard(wires):
+    return [
+        qml.S(wires),
+        qml.SX(wires),
+        qml.S(wires)
+    ]
 
-def _commutations(operations : list[Operation]):
+def Y_to_ZXZ(op):
+    rot_angles = op.single_qubit_rot_angles()
+    return [qml.RZ(np.pi/2, op.wires), qml.RX(rot_angles[1], op.wires), qml.RZ(-np.pi/2, op.wires)]
+
+def get_rid_of_y_rotations(tape : QuantumTape):
+    list_copy = tape.operations.copy()
     new_operations = []
-    list_copy = operations.copy()
+    for op in list_copy:
+        if not is_single_axis_gate(op, "Y"): 
+            new_operations += [op]
+        else:
+            new_operations += Y_to_ZXZ(op)
+    return type(tape)(new_operations, tape.measurements, tape.shots)
 
-    while len(list_copy) > 0:
-        op0 = list_copy.pop(0)
+def optimize(tape : QuantumTape) -> QuantumTape:
+    
+    print(to_qasm(tape, False))
+    print("barrier q;")
 
-        # if it's the first operation we can skip it
-        if len(operations) - 1 == len(list_copy) and _is_single_z_gate(op0):
-            continue
-
-
-def _is_single_z_gate(op : Operation):
-    mat = op.matrix()
-    return op.num_wires == 1 and [0][1] < epsilon and mat[1][0] < epsilon
-
-def _is_single_x_gate(op : Operation):
-    mat = op.matrix()
-    return mat[0][0] < epsilon and mat[1][1] < epsilon and np.abs(_angle(mat[0][1]) - _angle(mat[1][0])) < epsilon
-
-def _angle(complex_num):
-    return np.arctan2(np.imag(complex_num), np.real(complex_num))
+    tape = expand(tape, { "CNOT" : HCZH_cnot })
+    tape = base_optimisation(tape)
+    
+    tape = expand(tape, { "Hadamard" : ZXZ_Hadamard })
+    tape = base_optimisation(tape)
+    
+    tape = transforms.create_expand_fn(depth=3, stop_at=lambda op: op.name in ["RZ", "RX", "RY", "CZ"])(tape)
+    tape = base_optimisation(tape)
+    
+    tape = get_rid_of_y_rotations(tape)
+    tape = base_optimisation(tape)
+    print(to_qasm(tape, False))
+    return tape
