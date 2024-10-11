@@ -4,52 +4,6 @@ from pennylane.tape import QuantumTape
 import networkx as nx
 
 
-class VF2:
-    _pattern : nx.Graph
-    _target : nx.Graph
-    _pattern_nodes : list[int]
-    _target_nodes : list[int]
-    _matches : dict[int, int]
-
-    def __init__(self, pattern : nx.Graph, target : nx.Graph):
-        self._pattern = pattern
-        self._target = target
-        self._pattern_nodes = list(pattern.nodes)
-        self._target_nodes = list(target.nodes)
-        self._matches = {}  # pattern node -> target node mapping
-
-    def _is_valid_mapping(self, pattern_node : int, target_node : int) -> bool:
-        # Check if the current mapping is valid
-        for p in self._pattern.neighbors(pattern_node):
-            if p in self._matches:
-                t = self._matches[p]
-                if not target_node in self._target.neighbors(t):
-                    return False
-        return True
-
-    def backtrack(self, pattern_index : int) -> bool:
-        if pattern_index == len(self._pattern_nodes):
-            return True
-
-        pattern_node = self._pattern_nodes[pattern_index]
-
-        for target_node in self._target_nodes:
-            if target_node not in self._matches.values() and self._is_valid_mapping(pattern_node, target_node):
-                self._matches[pattern_node] = target_node
-
-                if self.backtrack(pattern_index + 1):
-                    return True
-
-                del self._matches[pattern_node]
-
-        return False
-
-    def find_subgraph_isomorphisms(self) -> dict[int, int]:
-        if self.backtrack(0):
-            return self._matches
-        else:
-            return None
-
 # TODO : change to an actual call to an API
 def get_broken_infra():
     return [], []
@@ -68,7 +22,9 @@ def circuit_graph(tape : QuantumTape) -> nx.Graph:
             continue
         toAdd = list(int(i) for i in op.wires)
         links.append(toAdd)
-    return nx.Graph(links)
+    g = nx.Graph(links)
+    g.add_nodes_from([w for w in tape.wires if w not in g.nodes])
+    return g
 
 def machine_graph(broken_nodes : list[int] = [], broken_couplers : list[list[int]] = []):
 #       00
@@ -99,9 +55,10 @@ def machine_graph(broken_nodes : list[int] = [], broken_couplers : list[list[int
 
 # TODO : try to make it work with networkx instead of handwritten algo
 def _find_isomorphisms(circuit : nx.Graph, machine : nx.Graph) -> dict[int, int]:
-    vf2 = VF2(circuit, machine)
-    isomorphisms = vf2.find_subgraph_isomorphisms()
-    return isomorphisms
+    vf2 = nx.isomorphism.GraphMatcher(machine, circuit)
+    for mono in vf2.subgraph_monomorphisms_iter():
+       return {v : k for k, v in mono.items()}
+    return None
 
 def _find_largest_subgraph_isomorphism(circuit : nx.Graph, machine : nx.Graph):
     from itertools import combinations
@@ -148,24 +105,21 @@ def physical_placement(tape : QuantumTape) -> QuantumTape:
 
     
     # 1. trouver un isomorphisme entre le circuit et la machine
-    mapping = _find_isomorphisms(circuit_topology, machine_topology)
+    mapping = _find_largest_subgraph_isomorphism(circuit_topology, machine_topology)
 
-    if mapping is None: 
-        # 2. si aucun isomorphisme n'existe, trouver un isomorphisme entre le sous-graphe le plus gros du circuit et la machine
-        mapping = _find_largest_subgraph_isomorphism(circuit_topology, machine_topology)
         # 3. identifier les noeuds du circuit manquant dans le mapping (a)
-        missing = [node for node in circuit_topology.nodes if node not in mapping.keys()]
+    missing = [node for node in circuit_topology.nodes if node not in mapping.keys()]
         
-        for node in missing:
-            most_connected_node = _most_connected_node(node, circuit_topology)
-            # 4. trouver un noeud du circuit (b) qui minimise le chemin entre b et le noeud a non-mapp�
-            # shortest_path_node = _node_with_shortest_path_from_selection(node, mapping.keys(), circuit_topology)
-            # 5. trouver un noeud dans la machine (a') qui minimise le chemin entre a' et b'
+    for node in missing:
+        most_connected_node = _most_connected_node(node, circuit_topology)
+        # 4. trouver un noeud du circuit (b) qui minimise le chemin entre b et le noeud a non-mapp�
+        # shortest_path_node = _node_with_shortest_path_from_selection(node, mapping.keys(), circuit_topology)
+        # 5. trouver un noeud dans la machine (a') qui minimise le chemin entre a' et b'
             
-            possibles = [n for n in machine_topology.nodes if n not in mapping.values()]
-            shortest_path_mapping = _node_with_shortest_path_from_selection(mapping[most_connected_node], possibles, machine_topology)
+        possibles = [n for n in machine_topology.nodes if n not in mapping.values()]
+        shortest_path_mapping = _node_with_shortest_path_from_selection(mapping[most_connected_node], possibles, machine_topology)
             
-            mapping[node] = shortest_path_mapping
+        mapping[node] = shortest_path_mapping
     
     # 6. corriger les connexions dans le circuit en fonction du mappage choisi
     new_tape = type(tape)([op.map_wires(mapping) for op in tape.operations], [m.map_wires(mapping) for m in tape.measurements], shots=tape.shots)

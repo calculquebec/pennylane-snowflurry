@@ -1,18 +1,13 @@
 from functools import partial
-import numpy
-import custom_gates as custom
 from typing import Tuple
 import pennylane as qml
 from pennylane.devices import Device
 from pennylane.transforms.core import TransformProgram
 from pennylane.tape import QuantumScript, QuantumTape
 from execution_config import DefaultExecutionConfig, ExecutionConfig
-from pennylane import transform
-import pennylane.transforms as transforms
-from api_job import Job
 from api_adapter import instructions
 # from custom_decomposition import thunderhead_decompose
-from transpiler.monarq_transpile import transpile
+from transpiler.monarq_transpile import get_transpiler
 
 class TestDevice(Device):
     name = "MonarQDevice"
@@ -33,15 +28,17 @@ class TestDevice(Device):
         "PauliZ"
     }
     
-    def __init__(self, wires, shots, host = "", user = "", access_token = "") -> None:
+    def __init__(self, wires = None, shots = None, baseDecomposition=True, placeAndRoute=True, optimization=True, nativeDecomposition=True) -> None:
         super().__init__(wires=wires, shots=shots)
-        self.host = host
-        self.user = user
-        self.access_token = access_token
+        
+        self._baseDecomposition = baseDecomposition
+        self._placeAndRoute = placeAndRoute
+        self._optimization = optimization, 
+        self._nativeDecomposition = nativeDecomposition
     
     @property
     def name(self):
-        return MonarqDevice.short_name
+        return TestDevice.short_name
     
     def preprocess(
         self,
@@ -61,7 +58,10 @@ class TestDevice(Device):
         config = execution_config
 
         transform_program = TransformProgram()
-        transform_program.add_transform(transpile)
+        transform_program.add_transform(get_transpiler(baseDecomposition=self._baseDecomposition, 
+                                                placeAndRoute = self._placeAndRoute, 
+                                                optimization = self._optimization, 
+                                                nativeDecomposition = self._nativeDecomposition))
         return transform_program, config
 
     def execute(self, circuits: QuantumTape | list[QuantumTape], execution_config : ExecutionConfig = DefaultExecutionConfig):

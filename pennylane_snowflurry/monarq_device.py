@@ -1,43 +1,36 @@
-from functools import partial
-import numpy
-import custom_gates as custom
 from typing import Tuple
-import pennylane as qml
 from pennylane.devices import Device
 from pennylane.transforms.core import TransformProgram
 from pennylane.tape import QuantumScript, QuantumTape
 from execution_config import DefaultExecutionConfig, ExecutionConfig
-from pennylane import transform
-import pennylane.transforms as transforms
 from api_job import Job
-from api_adapter import instructions
-# from custom_decomposition import thunderhead_decompose
-from transpiler.monarq_transpile import transpile
+from transpiler.monarq_transpile import get_transpiler
+from functools import partial
 
 class MonarqDevice(Device):
     name = "MonarQDevice"
     short_name = "monarq.qubit"
     pennylane_requires = ">=0.30.0"
-    author = "CalculQuébec"
+    author = "CalculQuebec"
     
     realm = "calculqc"
     circuit_name = "test circuit"
     project_id = ""
     machine_name = "yamaska"
-    
-    operations = {
-        key for key in instructions.keys()
-    }
-    
+
     observables = {
         "PauliZ"
     }
     
-    def __init__(self, wires, shots, host = "", user = "", access_token = "") -> None:
+    def __init__(self, wires, shots, host, user, access_token, baseDecomposition=True, placeAndRoute=True, optimization=True, nativeDecomposition=True) -> None:
         super().__init__(wires=wires, shots=shots)
         self.host = host
         self.user = user
         self.access_token = access_token
+        self._baseDecomposition = baseDecomposition
+        self._placeAndRoute = placeAndRoute
+        self._optimization = optimization, 
+        self._nativeDecomposition = nativeDecomposition
     
     @property
     def name(self):
@@ -61,7 +54,10 @@ class MonarqDevice(Device):
         config = execution_config
 
         transform_program = TransformProgram()
-        transform_program.add_transform(transpile)
+        transform_program.add_transform(get_transpiler(baseDecomposition=self._baseDecomposition, 
+                                                placeAndRoute = self._placeAndRoute, 
+                                                optimization = self._optimization, 
+                                                nativeDecomposition = self._nativeDecomposition))
         return transform_program, config
 
     def execute(self, circuits: QuantumTape | list[QuantumTape], execution_config : ExecutionConfig = DefaultExecutionConfig):
@@ -97,3 +93,4 @@ class MonarqDevice(Device):
                         MonarqDevice.machine_name) for circ in circuits]
         
         return results if not is_single_circuit else results[0]
+

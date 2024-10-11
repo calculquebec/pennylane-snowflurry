@@ -36,7 +36,7 @@ def get_rid_of_y_rotations(tape : QuantumTape):
 
 def optimize(tape : QuantumTape) -> QuantumTape:
     
-    print(to_qasm(tape, False))
+    print(to_qasm(tape))
     print("barrier q;")
 
     tape = expand(tape, { "CNOT" : HCZH_cnot })
@@ -50,5 +50,5 @@ def optimize(tape : QuantumTape) -> QuantumTape:
     
     tape = get_rid_of_y_rotations(tape)
     tape = base_optimisation(tape)
-    print(to_qasm(tape, False))
+    print(to_qasm(tape))
     return tape

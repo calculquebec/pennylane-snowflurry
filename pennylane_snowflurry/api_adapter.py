@@ -7,7 +7,7 @@ import json
 
 class internal:
     @staticmethod
-    def convert_instruction(instruction : Operation, actual_qubits : list[int]) -> dict[str, any]:
+    def convert_instruction(instruction : Operation) -> dict[str, any]:
         """converts a Pennylane operation to a dictionary that can be read by the Thunderhead API
 
         Args:
@@ -18,7 +18,7 @@ class internal:
             dict[str, any]: a dictionary representation of the operation that can be read by the Thunderhead API
         """
         operation = {
-            internal.keys.qubits : [actual_qubits[i] for i, w in enumerate(instruction.wires)],
+            internal.keys.qubits : [w for w in instruction.wires],
             internal.keys.type : instructions[instruction.name]
         }
         if instruction.name == "PhaseShift": operation[internal.keys.parameters] = {"lambda" : instruction.parameters[0]}
@@ -38,7 +38,7 @@ class internal:
 
         circuit_dict = {
             internal.keys.bitCount : 24,
-            internal.keys.operations : [internal.convert_instruction(op, circuit.wires) for op in circuit.operations if not isinstance(op, MeasurementProcess)],
+            internal.keys.operations : [internal.convert_instruction(op) for op in circuit.operations if not isinstance(op, MeasurementProcess)],
             internal.keys.qubitCount : 24
         }
         for m in circuit.measurements:
