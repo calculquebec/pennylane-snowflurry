@@ -1,5 +1,5 @@
 from pennylane.tape import QuantumTape
-from pennylane_snowflurry.optimization_utility import  find_previous_gate, find_next_gate
+from pennylane_snowflurry.transpiler.optimization_utility import  find_previous_gate, find_next_gate
 import pennylane.transforms as transforms
 import numpy as np
 

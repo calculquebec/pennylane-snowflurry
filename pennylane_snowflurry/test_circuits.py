@@ -55,7 +55,7 @@ def GHZ(num_wires):
     [qml.CNOT([0, i]) for i in range(num_wires)]
     return qml.probs()
 
-def bernstein_varizani(number : int):
+def bernstein_vazirani(number : int):
     value = []
     while number > 0:
         value.insert(0, (number & 1) != 0)

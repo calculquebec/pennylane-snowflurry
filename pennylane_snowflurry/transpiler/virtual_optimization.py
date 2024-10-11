@@ -1,10 +1,10 @@
 import numpy as np
 import pennylane as qml
 from pennylane.tape import QuantumTape
-from pennylane_snowflurry.optimization_utility import expand, is_single_axis_gate
-from pennylane_snowflurry.debug_utility import to_qasm
+from .optimization_utility import expand, is_single_axis_gate
+from .debug_utility import to_qasm
 import pennylane.transforms as transforms
-from pennylane_snowflurry.optimization_methods.commute_and_merge import base_optimisation
+from .optimization_methods.commute_and_merge import base_optimisation
 
 def HCZH_cnot(wires):
     return [
@@ -35,10 +35,6 @@ def get_rid_of_y_rotations(tape : QuantumTape):
     return type(tape)(new_operations, tape.measurements, tape.shots)
 
 def optimize(tape : QuantumTape) -> QuantumTape:
-    
-    print(to_qasm(tape))
-    print("barrier q;")
-
     tape = expand(tape, { "CNOT" : HCZH_cnot })
     tape = base_optimisation(tape)
     
@@ -50,5 +46,4 @@ def optimize(tape : QuantumTape) -> QuantumTape:
     
     tape = get_rid_of_y_rotations(tape)
     tape = base_optimisation(tape)
-    print(to_qasm(tape))
     return tape

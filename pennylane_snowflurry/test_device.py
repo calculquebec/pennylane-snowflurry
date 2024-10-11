@@ -87,5 +87,6 @@ class TestDevice(Device):
             # Fallback or default behavior if execution_config is not an instance of ExecutionConfig
             interface = None
             
-        dev = qml.device("default.qubit")
-        qml.execute(circuits, dev)
+        dev = qml.device("default.qubit", wires=[i for i in range(24)], shots=self.shots)
+        results = qml.execute(circuits, dev)
+        return results if not is_single_circuit else results[0]

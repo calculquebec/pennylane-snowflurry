@@ -1,6 +1,5 @@
 from pennylane.tape import QuantumTape
 from pennylane.operation import Operation
-from copy import deepcopy
 import networkx as nx
 
 from transpiler.physical_placement import _shortest_path, circuit_graph, machine_graph, get_broken_infra

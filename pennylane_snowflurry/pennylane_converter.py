@@ -190,7 +190,7 @@ class PennylaneConverter:
             # if an observable is given, we apply readouts to the wires mentioned in the observable,
             # TODO : could add Pauli rotations to get the correct observable
             self.apply_single_readout(obs.wires[0])
-
+    
     def get_circuit_as_dictionary(self):
         """
         Take the snowflurry QuantumCircuit.instructions and convert it to an array of operations.

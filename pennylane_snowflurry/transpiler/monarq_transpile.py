@@ -2,7 +2,6 @@ from copy import deepcopy
 from pennylane.tape import QuantumTape
 import pennylane as qml
 from pennylane.transforms import transform
-from pennylane.transforms.core import TransformContainer
 import transpiler.multi_gate_decomposition as step1
 import transpiler.virtual_optimization as step2
 import transpiler.physical_placement as step3
