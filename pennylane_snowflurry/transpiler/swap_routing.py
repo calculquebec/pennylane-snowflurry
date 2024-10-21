@@ -1,11 +1,19 @@
 from pennylane.tape import QuantumTape
 from pennylane.operation import Operation
 import networkx as nx
-
+import pennylane as qml
 from transpiler.physical_placement import _shortest_path, circuit_graph, machine_graph, get_broken_infra
 from transpiler.native_gate_decomposition import _custom_swap
+
 def _is_directly_connected(op : Operation, machine_topology : nx.Graph) -> bool:
     return op.wires[1] in machine_topology.neighbors(op.wires[0])
+
+def swap(wires):
+    return [
+        qml.CNOT(wires = [wires[0], wires[1]]),
+        qml.CNOT(wires = [wires[1], wires[0]]),
+        qml.CNOT(wires = [wires[0], wires[1]])
+    ]
 
 # TODO : there are better alternatives than using swap gates
 def swap_routing(tape : QuantumTape):
@@ -21,12 +29,12 @@ def swap_routing(tape : QuantumTape):
         if oper.num_wires == 2 and not _is_directly_connected(oper, machine_topology):
             path = _shortest_path(oper.wires[0], oper.wires[1], machine_topology)
             for i in range(1, len(path) - 1): 
-                new_operations += _custom_swap(path[i:i+2])
+                new_operations += [qml.SWAP([path[i], path[i+1]])]
 
-            new_operations += [oper.map_wires({k:v for (k,v) in zip(oper.wires, path[0:2])})]
+            new_operations += [oper.map_wires({k:v for (k,v) in zip(oper.wires, [path[0], path[1]])})]
 
             for i in reversed(range(1, len(path) - 1)):
-                new_operations += _custom_swap(path[i:i+2])
+                new_operations += [qml.SWAP([path[i],path[i+1]])]
         else:
             new_operations += [oper]
 

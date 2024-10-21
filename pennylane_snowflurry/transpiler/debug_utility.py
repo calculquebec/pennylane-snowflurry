@@ -1,4 +1,8 @@
+from pennylane.math import quantum
+from pennylane.measurements import MeasurementProcess
+from pennylane.operation import Operation
 from pennylane.tape import QuantumTape
+import pennylane as qml
 
 from pennylane_snowflurry.pennylane_converter import PennylaneConverter, Snowflurry
 
@@ -26,6 +30,10 @@ class SnowflurryUtility:
                                        realm=realm, 
                                        project_id="default")
     
+    def gate_count(self, sf_circuit = None) -> int:
+        if sf_circuit is None: sf_circuit = Snowflurry.sf_circuit
+        return len(sf_circuit.instructions)
+
     def to_qasm(self, sf_circuit = None) -> str:
         if sf_circuit is None: sf_circuit = Snowflurry.sf_circuit
 
@@ -56,4 +64,10 @@ class SnowflurryUtility:
         qpu = Snowflurry.AnyonYamaskaQPU(Snowflurry.currentClient, Snowflurry.seval("project_id"))
         sf_circuit = Snowflurry.transpile(Snowflurry.get_transpiler(qpu), sf_circuit)
         Snowflurry.sf_circuit = sf_circuit
-    
+
+def arbitrary_circuit(tape : QuantumTape):
+    def _arbitrary_circuit(operations : list[Operation], measurements : list[MeasurementProcess]):
+        [type(op)(op.parameters, op.wires) if len(op.parameters) > 0 else type(op)(op.wires) for op in operations]
+        return [type(mp)(wires=[w for w in mp.wires]) for mp in measurements] if len(measurements) > 1 \
+            else type(measurements[0])(wires=[w for w in measurements[0].wires] if len(measurements[0].wires) > 0 else tape.wires)
+    return _arbitrary_circuit(tape.operations, tape.measurements)

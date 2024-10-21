@@ -1,7 +1,7 @@
 from pennylane.tape import QuantumTape
 import json
 import time
-from api_adapter import ApiAdapter
+from api_adapter import ApiAdapter, internal
 
 class JobException(Exception):
     def __init__(self, message : str):
@@ -27,7 +27,11 @@ class Job:
             print(content)
 
     def run(self, circuit : QuantumTape, circuit_name : str, project_id : str, machine_name : str, verbose = False):
-        from api_adapter import internal
+        """
+        converts a quantum tape into a dictionary, readable by thunderhead
+        creates a job on thunderhead
+        fetches the result until the job is successfull, and returns the result
+        """
 
         circuit_dict = internal.convert_circuit(circuit)
 

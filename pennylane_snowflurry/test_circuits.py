@@ -1,8 +1,37 @@
 import pennylane as qml
 import numpy as np
 
+def add_k_fourier(k, wires):
+    for j in range(len(wires)):
+        qml.PhaseShift(k * np.pi / (2 ** j), wires=wires[j])
+
 def U(wires, angle = 2 * np.pi / 5):
     return qml.PhaseShift(angle, wires=wires)
+
+def connectivity_test1(num_wires = 6):
+    wires = range(num_wires)
+    for w in wires:
+        qml.Hadamard(w)
+    for w in wires[1:]:
+        qml.CNOT(wires=[0, w])
+    return qml.probs(wires=wires)
+
+def connectivity_test2(num_wires = 3):
+    wires = range(num_wires)
+    for w in wires:
+        qml.Hadamard(w)
+    for w in wires:
+        w2 = (w + 1) % (num_wires)
+        qml.CNOT(wires = [w, w2])
+    return qml.probs(wires=wires)
+
+def sum_m_k(m, k, num_wires):
+    wires = range(num_wires)
+    qml.BasisEmbedding(m, wires=wires)
+    qml.QFT(wires=wires)
+    add_k_fourier(k, wires)
+    qml.adjoint(qml.QFT)(wires=wires)
+    return qml.probs(wires=wires)
 
 def circuit_qpe(num_wires = 5, angle = 2 * np.pi / 5):
     wires = [i for i in range(num_wires)]
@@ -52,7 +81,7 @@ def commutation_test():
 
 def GHZ(num_wires):
     qml.Hadamard(0)
-    [qml.CNOT([0, i]) for i in range(num_wires)]
+    [qml.CNOT([0, i]) for i in range(1, num_wires)]
     return qml.probs()
 
 def bernstein_vazirani(number : int):

@@ -63,12 +63,13 @@ def base_optimisation(tape : QuantumTape) -> QuantumTape:
     iterations = 3
 
     for _ in range(iterations):
+        new_tape = tape
         new_tape = remove_root_zs(tape)
         new_tape = remove_leaf_zs(new_tape)
         new_tape = transforms.commute_controlled(new_tape)[0][0]
         new_tape = transforms.cancel_inverses(new_tape)[0][0]
         new_tape = transforms.merge_rotations(new_tape)[0][0]
-        new_tape = remove_trivials(new_tape)
+        # new_tape = remove_trivials(new_tape)
         if tape.operations == new_tape.operations:
             tape = new_tape
             break;

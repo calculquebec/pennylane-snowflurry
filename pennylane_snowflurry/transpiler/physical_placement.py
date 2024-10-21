@@ -1,6 +1,7 @@
 from copy import deepcopy
 from pennylane.tape import QuantumTape
 import networkx as nx
+from typing import Tuple
 
 
 # TODO : change to an actual call to an API
@@ -14,18 +15,18 @@ def circuit_graph(tape : QuantumTape) -> nx.Graph:
 
     output : nx.Graph, a graph representing the connections between the wires in the circuit
     """
-    links : list[list[int]] = []
+    links : list[Tuple[int, int]] = []
 
     for op in tape.operations:
         if len(op.wires) != 2:
             continue
-        toAdd = list(int(i) for i in op.wires)
+        toAdd = (op.wires[0], op.wires[1])
         links.append(toAdd)
-    g = nx.Graph(links)
+    g = nx.Graph(set(links))
     g.add_nodes_from([w for w in tape.wires if w not in g.nodes])
     return g
 
-def machine_graph(broken_nodes : list[int] = [], broken_couplers : list[list[int]] = []):
+def machine_graph(broken_nodes : list[int] = [], broken_couplers : list[Tuple[int, int]] = []):
 #       00
 #       |
 #    08-04-01
@@ -40,19 +41,18 @@ def machine_graph(broken_nodes : list[int] = [], broken_couplers : list[list[int
 #          |
 #          23
     
-    links = [[0, 4], [1, 4], [1, 5], [2, 5], [2, 6], 
-             [3, 6], [3, 7], [4, 8], [4, 9], 
-             [5, 9], [5, 10], [6, 10], [6, 11], 
-             [7, 11], [8, 12], [9, 12], [9, 13], 
-             [10, 13], [10, 14], [11, 14], [11, 15], 
-             [12, 16], [12, 17], [13, 17], [13, 18],
-             [14, 18], [14, 19], [15, 19], [16, 20],
-             [17, 20], [17, 21], [18, 21], [18, 22],
-             [19, 22], [19, 23]]
+    links = [(0, 4), (1, 4), (1, 5), (2, 5), (2, 6), 
+             (3, 6), (3, 7), (4, 8), (4, 9), 
+             (5, 9), (5, 10), (6, 10), (6, 11), 
+             (7, 11), (8, 12), (9, 12), (9, 13), 
+             (10, 13), (10, 14), (11, 14), (11, 15), 
+             (12, 16), (12, 17), (13, 17), (13, 18),
+             (14, 18), (14, 19), (15, 19), (16, 20),
+             (17, 20), (17, 21), (18, 21), (18, 22),
+             (19, 22), (19, 23)]
     return nx.Graph([i for i in links if i[0] not in broken_nodes and i[1] not in broken_nodes \
             and i not in broken_couplers and list(reversed(i)) not in broken_couplers])
 
-# TODO : try to make it work with networkx instead of handwritten algo
 def _find_isomorphisms(circuit : nx.Graph, machine : nx.Graph) -> dict[int, int]:
     vf2 = nx.isomorphism.GraphMatcher(machine, circuit)
     for mono in vf2.subgraph_monomorphisms_iter():
@@ -60,6 +60,9 @@ def _find_isomorphisms(circuit : nx.Graph, machine : nx.Graph) -> dict[int, int]
     return None
 
 def _find_largest_subgraph_isomorphism(circuit : nx.Graph, machine : nx.Graph):
+    """
+    TODO : not super efficient. might be better to find another technique
+    """
     from itertools import combinations
 
     edges = [e for e in circuit.edges]
