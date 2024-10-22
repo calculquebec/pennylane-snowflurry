@@ -1,13 +1,19 @@
+import json
 from typing import Tuple
 from pennylane.devices import Device
 from pennylane.transforms.core import TransformProgram
 from pennylane.tape import QuantumScript, QuantumTape
 from execution_config import DefaultExecutionConfig, ExecutionConfig
 from api_job import Job
+from pennylane_snowflurry.api_adapter import ApiAdapter
 from transpiler.monarq_transpile import get_transpiler
 from functools import partial
+import monarq_connectivity as con
 
 class MonarqDevice(Device):
+
+    benchmark_acceptance=0.7
+
     name = "MonarQDevice"
     short_name = "monarq.qubit"
     pennylane_requires = ">=0.30.0"
@@ -22,7 +28,17 @@ class MonarqDevice(Device):
         "PauliZ"
     }
     
-    def __init__(self, wires, shots, host, user, access_token, baseDecomposition=True, placeAndRoute=True, optimization=True, nativeDecomposition=True) -> None:
+    def __init__(self, 
+                 wires, 
+                 shots, 
+                 host, 
+                 user, 
+                 access_token, 
+                 baseDecomposition=True, 
+                 placeAndRoute=True, 
+                 optimization=True, 
+                 nativeDecomposition=True) -> None:
+
         super().__init__(wires=wires, shots=shots)
         self.host = host
         self.user = user
@@ -31,7 +47,37 @@ class MonarqDevice(Device):
         self._placeAndRoute = placeAndRoute
         self._optimization = optimization, 
         self._nativeDecomposition = nativeDecomposition
+
+        self._build_benchmark()
     
+    def _build_benchmark(self):
+        couplers_tag = "couplers"
+        qubits_tag = "qubits"
+        readoutState1Fidelity_tag = "readoutState1Fidelity"
+        czGateFidelity_tag = "czGateFidelity"
+
+        api = ApiAdapter(self.host, self.user, self.access_token, MonarqDevice.realm)
+        benchmark_raw = api.get_benchmark(self.machine_name)
+        connectivity = con.connectivity
+        self.benchmark = { qubits_tag : [], couplers_tag : [] }
+
+        for coupler_id in benchmark_raw[couplers_tag]:
+            benchmark_coupler = benchmark_raw[couplers_tag][coupler_id]
+            conn_coupler = connectivity[couplers_tag][coupler_id]
+
+            if benchmark_coupler[czGateFidelity_tag] >= MonarqDevice.benchmark_acceptance:
+                continue
+
+            self.benchmark[couplers_tag].append(conn_coupler)
+
+        for qubit_id in benchmark_raw[qubits_tag]:
+            benchmark_qubit = benchmark_raw[qubits_tag][qubit_id]
+
+            if benchmark_qubit[readoutState1Fidelity_tag] >= MonarqDevice.benchmark_acceptance:
+                continue
+
+            self.benchmark[qubits_tag].append(int(qubit_id))
+
     @property
     def name(self):
         return MonarqDevice.short_name
@@ -57,7 +103,8 @@ class MonarqDevice(Device):
         transform_program.add_transform(get_transpiler(baseDecomposition=self._baseDecomposition, 
                                                 placeAndRoute = self._placeAndRoute, 
                                                 optimization = self._optimization, 
-                                                nativeDecomposition = self._nativeDecomposition))
+                                                nativeDecomposition = self._nativeDecomposition,
+                                                benchmark=self.benchmark))
         return transform_program, config
 
     def execute(self, circuits: QuantumTape | list[QuantumTape], execution_config : ExecutionConfig = DefaultExecutionConfig):

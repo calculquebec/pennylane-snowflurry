@@ -48,40 +48,38 @@ def apply_equivalences(tape: QuantumTape, equivalences) -> QuantumTape:
     new_operations = []
     list_copy = tape.operations.copy()
 
-    with qml.QueuingManager.stop_recording():
-        with qml.tape.QuantumTape() as _:
-            while len(list_copy) > 0:
-                current_gate = list_copy.pop(0)
+    while len(list_copy) > 0:
+        current_gate = list_copy.pop(0)
 
-                # Ignore 2-qubit gates
-                if len(current_gate.wires) > 1:
-                    new_operations.append(current_gate)
-                    continue
+        # Ignore 2-qubit gates
+        if len(current_gate.wires) > 1:
+            new_operations.append(current_gate)
+            continue
 
-                next_gate_idx = find_next_gate(current_gate.wires, list_copy)
+        next_gate_idx = find_next_gate(current_gate.wires, list_copy)
 
-                if next_gate_idx is None:
-                    new_operations.append(current_gate)
-                    continue
+        if next_gate_idx is None:
+            new_operations.append(current_gate)
+            continue
 
-                gates_to_apply = [current_gate]
+        gates_to_apply = [current_gate]
 
-                while next_gate_idx is not None:
-                    next_gate = list_copy[next_gate_idx]
+        while next_gate_idx is not None:
+            next_gate = list_copy[next_gate_idx]
 
                     
-                    if len(next_gate.wires) > 1:
-                        break
+            if len(next_gate.wires) > 1:
+                break
                     
-                    gates_to_apply.append(next_gate)
-                    list_copy.pop(next_gate_idx)
-                    next_gate_idx = find_next_gate(current_gate.wires, list_copy)
+            gates_to_apply.append(next_gate)
+            list_copy.pop(next_gate_idx)
+            next_gate_idx = find_next_gate(current_gate.wires, list_copy)
 
-                if len(gates_to_apply) == 1:
-                    new_operations += gates_to_apply
-                else:
-                    appendage = _search_and_apply_equivalences(gates_to_apply, equivalences)
-                    new_operations += appendage
+        if len(gates_to_apply) == 1:
+            new_operations += gates_to_apply
+        else:
+            appendage = _search_and_apply_equivalences(gates_to_apply, equivalences)
+            new_operations += appendage
 
     return type(tape)(new_operations, tape.measurements, shots=tape.shots)
 

@@ -112,6 +112,9 @@ class internal:
     class routes:
         jobs = "/jobs"
         projects = "/projects"
+        machines = "/machines"
+        benchmarking = "/benchmarking"
+        machineName = "?machineName"
         
     class keys:
         bitCount = "bitCount"
@@ -153,6 +156,19 @@ class ApiAdapter:
         self.host = host
         self.headers = internal.headers(user, access_token, realm)
         
+    def get_benchmark(self, machine_name : str):
+        
+        route = self.host + internal.routes.machines + internal.routes.machineName + "=" + machine_name
+        res = requests.get(route, headers=self.headers)
+        machine_id = json.loads(res.text)["items"][0]["id"]
+
+        route = self.host + internal.routes.machines + "/" + machine_id + internal.routes.benchmarking
+        res = requests.get(route, headers=self.headers)
+        benchmarking = json.loads(res.text)["resultsPerDevice"]
+
+        return benchmarking
+        
+
     def create_job(self, circuit : dict[str, any], 
                    circuit_name : str, 
                    project_id : str, 

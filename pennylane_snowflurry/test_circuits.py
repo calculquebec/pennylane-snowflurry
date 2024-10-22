@@ -14,7 +14,7 @@ def connectivity_test1(num_wires = 6):
         qml.Hadamard(w)
     for w in wires[1:]:
         qml.CNOT(wires=[0, w])
-    return qml.probs(wires=wires)
+    return qml.counts(wires=wires)
 
 def connectivity_test2(num_wires = 3):
     wires = range(num_wires)
@@ -23,7 +23,7 @@ def connectivity_test2(num_wires = 3):
     for w in wires:
         w2 = (w + 1) % (num_wires)
         qml.CNOT(wires = [w, w2])
-    return qml.probs(wires=wires)
+    return qml.counts(wires=wires)
 
 def sum_m_k(m, k, num_wires):
     wires = range(num_wires)
@@ -31,7 +31,7 @@ def sum_m_k(m, k, num_wires):
     qml.QFT(wires=wires)
     add_k_fourier(k, wires)
     qml.adjoint(qml.QFT)(wires=wires)
-    return qml.probs(wires=wires)
+    return qml.counts(wires=wires)
 
 def circuit_qpe(num_wires = 5, angle = 2 * np.pi / 5):
     wires = [i for i in range(num_wires)]
@@ -45,7 +45,7 @@ def circuit_qpe(num_wires = 5, angle = 2 * np.pi / 5):
     qml.ControlledSequence(U(num_wires - 1, angle), control=estimation_wires)
     qml.adjoint(qml.QFT)(wires=estimation_wires)
 
-    return qml.probs(wires=estimation_wires)
+    return qml.counts(wires=estimation_wires)
 
 def commutation_test():
     qml.RZ(0.1, wires=[0])
@@ -77,12 +77,12 @@ def commutation_test():
     qml.RX(2.3, wires=[1])
     qml.RZ(2.4, wires=[1])
 
-    return qml.probs(wires=[0,1,2])
+    return qml.counts(wires=[0,1,2])
 
 def GHZ(num_wires):
     qml.Hadamard(0)
     [qml.CNOT([0, i]) for i in range(1, num_wires)]
-    return qml.probs()
+    return qml.counts(wires = range(num_wires))
 
 def bernstein_vazirani(number : int):
     value = []
@@ -98,5 +98,5 @@ def bernstein_vazirani(number : int):
     [qml.CNOT([i, num_wires - 1]) for i, should in enumerate(value) if should]
         
     [qml.Hadamard(i) for i in range(num_wires - 1)]
-    return qml.probs(wires=[i for i in range(num_wires - 1)])
+    return qml.counts(wires=[i for i in range(num_wires - 1)])
     

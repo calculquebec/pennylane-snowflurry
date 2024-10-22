@@ -1,8 +1,7 @@
 import numpy as np
 import pennylane as qml
 from pennylane.tape import QuantumTape
-from .optimization_utility import expand, is_single_axis_gate
-from .debug_utility import to_qasm
+from pennylane_snowflurry.utility.optimization_utility import expand, is_single_axis_gate
 import pennylane.transforms as transforms
 from .optimization_methods.commute_and_merge import base_optimisation
 
@@ -35,6 +34,9 @@ def get_rid_of_y_rotations(tape : QuantumTape):
     return type(tape)(new_operations, tape.measurements, tape.shots)
 
 def optimize(tape : QuantumTape) -> QuantumTape:
+    
+    tape = base_optimisation(tape)
+
     tape = expand(tape, { "CNOT" : HCZH_cnot })
     tape = base_optimisation(tape)
     

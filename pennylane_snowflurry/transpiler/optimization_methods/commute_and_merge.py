@@ -1,5 +1,5 @@
 from pennylane.tape import QuantumTape
-from pennylane_snowflurry.transpiler.optimization_utility import  find_previous_gate, find_next_gate
+from pennylane_snowflurry.utility.optimization_utility import  find_previous_gate, find_next_gate
 import pennylane.transforms as transforms
 import numpy as np
 
@@ -69,7 +69,7 @@ def base_optimisation(tape : QuantumTape) -> QuantumTape:
         new_tape = transforms.commute_controlled(new_tape)[0][0]
         new_tape = transforms.cancel_inverses(new_tape)[0][0]
         new_tape = transforms.merge_rotations(new_tape)[0][0]
-        # new_tape = remove_trivials(new_tape)
+        new_tape = remove_trivials(new_tape)
         if tape.operations == new_tape.operations:
             tape = new_tape
             break;

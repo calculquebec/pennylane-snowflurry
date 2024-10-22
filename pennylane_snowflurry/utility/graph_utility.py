@@ -1,12 +1,13 @@
-from copy import deepcopy
 from pennylane.tape import QuantumTape
+from pennylane.operation import Operation
 import networkx as nx
 from typing import Tuple
+from copy import deepcopy
 
 
-# TODO : change to an actual call to an API
-def get_broken_infra():
-    return [], []
+def is_directly_connected(op : Operation, machine_topology : nx.Graph) -> bool:
+    return op.wires[1] in machine_topology.neighbors(op.wires[0])
+
 
 def circuit_graph(tape : QuantumTape) -> nx.Graph:
     """
@@ -25,6 +26,8 @@ def circuit_graph(tape : QuantumTape) -> nx.Graph:
     g = nx.Graph(set(links))
     g.add_nodes_from([w for w in tape.wires if w not in g.nodes])
     return g
+
+
 
 def machine_graph(broken_nodes : list[int] = [], broken_couplers : list[Tuple[int, int]] = []):
 #       00
@@ -59,7 +62,7 @@ def _find_isomorphisms(circuit : nx.Graph, machine : nx.Graph) -> dict[int, int]
        return {v : k for k, v in mono.items()}
     return None
 
-def _find_largest_subgraph_isomorphism(circuit : nx.Graph, machine : nx.Graph):
+def find_largest_subgraph_isomorphism(circuit : nx.Graph, machine : nx.Graph):
     """
     TODO : not super efficient. might be better to find another technique
     """
@@ -71,7 +74,7 @@ def _find_largest_subgraph_isomorphism(circuit : nx.Graph, machine : nx.Graph):
             result = _find_isomorphisms(nx.Graph(comb), machine)
             if result: return result
 
-def _most_connected_node(source : int, graph : nx.Graph):
+def most_connected_node(source : int, graph : nx.Graph):
     """
     find node in graph minus excluded nodes with most connections with the given source node
     """
@@ -79,7 +82,7 @@ def _most_connected_node(source : int, graph : nx.Graph):
     return max(g_copy.nodes, \
         key = lambda n : sum(1 for g in graph.edges if g[0] == n and g[1] == source or g[1] == n and g[0] == source))
 
-def _shortest_path(a : int, b : int, graph : nx.Graph, excluding : list[int] = []):
+def shortest_path(a : int, b : int, graph : nx.Graph, excluding : list[int] = []):
     """
     find the shortest path between node a and b in graph minus excluded nodes
     """
@@ -87,7 +90,26 @@ def _shortest_path(a : int, b : int, graph : nx.Graph, excluding : list[int] = [
     g_copy.remove_nodes_from(excluding)
     return nx.astar_path(g_copy, a, b)
 
-def _node_with_shortest_path_from_selection(source : int, selection : list[int], graph : nx.Graph):
+def find_best_wire(machine_graph : nx.Graph):
+    return max(machine_graph.nodes, key=lambda n: machine_graph.degree(n))
+
+def find_closest_wire(a : int, machine_graph : nx.Graph, excluding : list[int]):
+    """
+    find node in graph that is closest to given node, not considering arbitrary excluding list
+    """
+    min_node = None
+    min_value = 100000
+    for b in machine_graph.nodes:
+        if b in excluding:
+            continue
+        value = shortest_path(a, b, machine_graph)[-1]
+        
+        if value < min_value:
+            min_value = value
+            min_node = b
+    return min_node
+
+def node_with_shortest_path_from_selection(source : int, selection : list[int], graph : nx.Graph):
     """
     find the unmapped node node in graph minus mapped nodes that has shortest path to given source node
     """
@@ -95,35 +117,5 @@ def _node_with_shortest_path_from_selection(source : int, selection : list[int],
     # mapping_minus_source = [n for n in mapping if n != source]
 
     nodes_minus_source = [node for node in selection if node != source]
-    return min(nodes_minus_source, key=lambda n: len(_shortest_path(source, n, graph)))
+    return min(nodes_minus_source, key=lambda n: len(shortest_path(source, n, graph)))
     # return min(all_unmapped_nodes, key = lambda n : len(_shortest_path(source, n, graph, mapping_minus_source)))
-
-def physical_placement(tape : QuantumTape) -> QuantumTape:
-    # on veut que les fils soient mapp�s � des qubits de la machine en fonction d'un isomorphisme ou d'un placement efficace
-    
-    broken_nodes, broken_couplers = get_broken_infra()
-    circuit_topology = circuit_graph(tape)
-    machine_topology = machine_graph(broken_nodes, broken_couplers)
-
-    
-    # 1. trouver un isomorphisme entre le circuit et la machine
-    mapping = _find_largest_subgraph_isomorphism(circuit_topology, machine_topology)
-
-        # 3. identifier les noeuds du circuit manquant dans le mapping (a)
-    missing = [node for node in circuit_topology.nodes if node not in mapping.keys()]
-        
-    for node in missing:
-        most_connected_node = _most_connected_node(node, circuit_topology)
-        # 4. trouver un noeud du circuit (b) qui minimise le chemin entre b et le noeud a non-mapp�
-        # shortest_path_node = _node_with_shortest_path_from_selection(node, mapping.keys(), circuit_topology)
-        # 5. trouver un noeud dans la machine (a') qui minimise le chemin entre a' et b'
-            
-        possibles = [n for n in machine_topology.nodes if n not in mapping.values()]
-        shortest_path_mapping = _node_with_shortest_path_from_selection(mapping[most_connected_node], possibles, machine_topology)
-            
-        mapping[node] = shortest_path_mapping
-    
-    # 6. corriger les connexions dans le circuit en fonction du mappage choisi
-    new_tape = type(tape)([op.map_wires(mapping) for op in tape.operations], [m.map_wires(mapping) for m in tape.measurements], shots=tape.shots)
-
-    return new_tape
