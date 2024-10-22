@@ -4,10 +4,9 @@ import pennylane as qml
 from pennylane.devices import Device
 from pennylane.transforms.core import TransformProgram
 from pennylane.tape import QuantumScript, QuantumTape
-from execution_config import DefaultExecutionConfig, ExecutionConfig
-from api_adapter import instructions
-# from custom_decomposition import thunderhead_decompose
-from transpiler.monarq_transpile import get_transpiler
+from pennylane_snowflurry.execution_config import DefaultExecutionConfig, ExecutionConfig
+from pennylane_snowflurry.api_adapter import instructions
+from pennylane_snowflurry.transpiler.monarq_transpile import get_transpiler
 
 class TestDevice(Device):
     name = "MonarQDevice"

@@ -152,21 +152,35 @@ instructions : dict[str, str] = {
     
 
 class ApiAdapter:
+    """
+    a wrapper around Thunderhead. Provide a host, user, access token and realm, and you can :
+    - create job with circuit dict, circuit name, project id, machine name and shots count
+    - get benchmark by machine name
+    - get machine id by name
+    """
     def __init__(self, host = "", user = "", access_token = "", realm = ""):
         self.host = host
         self.headers = internal.headers(user, access_token, realm)
-        
-    def get_benchmark(self, machine_name : str):
-        
+    
+    def get_machine_id_by_name(self, machine_name : str):
         route = self.host + internal.routes.machines + internal.routes.machineName + "=" + machine_name
-        res = requests.get(route, headers=self.headers)
-        machine_id = json.loads(res.text)["items"][0]["id"]
+        return requests.get(route, headers=self.headers)
+    
+    def get_qubits_and_couplers(self, machine_name : str):
+        res = self.get_benchmark(machine_name)
+        if res.status_code != 200:
+            return None
+        return json.loads(res.text)["resultsPerDevice"]
 
+    def get_benchmark(self, machine_name : str):
+        res = self.get_machine_id_by_name(machine_name)
+        if res.status_code != 200:
+            return None
+        machine_id = json.loads(res.text)["items"][0].id
+    
         route = self.host + internal.routes.machines + "/" + machine_id + internal.routes.benchmarking
-        res = requests.get(route, headers=self.headers)
-        benchmarking = json.loads(res.text)["resultsPerDevice"]
-
-        return benchmarking
+        return requests.get(route, headers=self.headers)
+        
         
 
     def create_job(self, circuit : dict[str, any], 

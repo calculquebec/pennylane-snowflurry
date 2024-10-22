@@ -2,11 +2,11 @@ from copy import deepcopy
 from pennylane.tape import QuantumTape
 import pennylane as qml
 from pennylane.transforms import transform
-import transpiler.simple_decomposition as step1
-import transpiler.placement as step2
-import transpiler.routing as step3
-import transpiler.optimization as step4
-import transpiler.native_decomposition as step5
+import pennylane_snowflurry.transpiler.simple_decomposition as step1
+import pennylane_snowflurry.transpiler.placement as step2
+import pennylane_snowflurry.transpiler.routing as step3
+import pennylane_snowflurry.transpiler.optimization as step4
+import pennylane_snowflurry.transpiler.native_decomposition as step5
 
 
 def get_transpiler(baseDecomposition = True, 

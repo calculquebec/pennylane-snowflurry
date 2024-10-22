@@ -82,13 +82,15 @@ def most_connected_node(source : int, graph : nx.Graph):
     return max(g_copy.nodes, \
         key = lambda n : sum(1 for g in graph.edges if g[0] == n and g[1] == source or g[1] == n and g[0] == source))
 
-def shortest_path(a : int, b : int, graph : nx.Graph, excluding : list[int] = []):
+def shortest_path(a : int, b : int, graph : nx.Graph, excluding : list[int] = [], prioritized_nodes : list[int] = []):
     """
     find the shortest path between node a and b in graph minus excluded nodes
     """
     g_copy = deepcopy(graph)
     g_copy.remove_nodes_from(excluding)
-    return nx.astar_path(g_copy, a, b)
+    return nx.astar_path(g_copy, a, b, 
+                         weight = lambda u, v, _: 1 if any(node in (u, v) 
+                                                           for node in prioritized_nodes) else 2)
 
 def find_best_wire(machine_graph : nx.Graph):
     return max(machine_graph.nodes, key=lambda n: machine_graph.degree(n))

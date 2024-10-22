@@ -1,25 +1,43 @@
 from pennylane.tape import QuantumTape
 import pennylane as qml
-import custom_gates as custom
+import pennylane_snowflurry.custom_gates as custom
 import numpy as np
 
 
 def _custom_tdag(wires):
+    """
+    a native implementation of the adjoint(T) operation
+    """
     return [custom.TDagger(wires)]
 
 def _custom_s(wires):
+    """
+    a native implementation of the S operation
+    """
     return [custom.Z90(wires)]
 
 def _custom_sdag(wires):
+    """
+    a native implementation of the adjoint(S) operation
+    """
     return [custom.ZM90(wires)]
 
 def _custom_h(wires):
+    """
+    a native implementation of the Hadamard operation
+    """
     return [custom.Z90(wires), custom.X90(wires), custom.Z90(wires)]
 
 def _custom_cnot(wires):
+    """
+    a native implementation of the CNOT operation
+    """
     return _custom_h(wires[1]) + [qml.CZ(wires)] + _custom_h(wires[1])
 
 def _custom_cy(wires):
+    """
+    a native implementation of the CY operation
+    """
     return _custom_h(wires[1]) \
         + _custom_s(wires[1]) \
         + _custom_cnot(wires) \
@@ -27,6 +45,9 @@ def _custom_cy(wires):
         + _custom_h(wires[1])
 
 def _custom_rz(angle : float, wires, epsilon = 1E-8):
+    """
+    a native implementation of the RZ operation
+    """
     while angle < 0: angle += np.pi * 2
     angle %= np.pi * 2
     is_close_enough_to = lambda other_angle: np.abs(angle - other_angle) < epsilon
@@ -63,6 +84,9 @@ def _custom_rz(angle : float, wires, epsilon = 1E-8):
     return result
 
 def _custom_rx(angle : float, wires, epsilon = 1E-8):
+    """
+    a native implementation of the RX operation
+    """
     while angle < 0: angle += np.pi * 2
     angle %= np.pi * 2
     is_close_enough_to = lambda other_angle: np.abs(angle - other_angle) < epsilon
@@ -81,7 +105,7 @@ def _custom_rx(angle : float, wires, epsilon = 1E-8):
         else:
             result += _custom_s(0)
             angle -= np.pi/2
-
+    
     result += _custom_h(wires = wires)
     # rotate �pi/4 if necessary
     while(np.abs(angle) > np.pi/4):
@@ -100,6 +124,9 @@ def _custom_rx(angle : float, wires, epsilon = 1E-8):
     return result
 
 def _custom_ry(angle : float, wires, epsilon = 1E-8):
+    """
+    a native implementation of the RY operation
+    """
     while angle < 0: angle += np.pi * 2
     angle %= np.pi * 2
     is_close_enough_to = lambda other_angle: np.abs(angle - other_angle) < epsilon
@@ -140,6 +167,9 @@ def _custom_ry(angle : float, wires, epsilon = 1E-8):
     return result
 
 def _custom_swap(wires):
+    """
+    a native implementation of the SWAP operation
+    """
     return _custom_cnot(wires) + _custom_h(wires[0]) + _custom_h(wires[1]) + _custom_cnot(wires) + _custom_h(wires[0]) + _custom_h(wires[1]) + _custom_cnot(wires)
 
 
@@ -157,6 +187,9 @@ _decomp_map = {
 }
 
 def native_gate_decomposition(tape : QuantumTape, exclude_list : list[str] = None):
+    """
+    decomposes all non-native gate to an equivalent set of native gates
+    """
     from pennylane.ops.op_math import SProd
     # d�composer toutes les portes non-natives en porte natives
     if exclude_list is None:

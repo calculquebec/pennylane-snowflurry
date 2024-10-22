@@ -1,5 +1,5 @@
-from typing import Callable, TypeVar
-from pennylane_snowflurry.utility.optimization_utility import T, U
+from typing import Callable
+from pennylane_snowflurry.utility.optimization_utility import T
 
 def _compute_lps_array(pattern : list[T], compare : Callable[[T, T], bool]) ->list[int]:
     """

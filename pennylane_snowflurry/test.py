@@ -1,5 +1,4 @@
 from functools import partial
-from pennylane_snowflurry.api_adapter import ApiAdapter
 from pennylane_snowflurry.utility.debug_utility import arbitrary_circuit
 import numpy as np
 import pennylane as qml

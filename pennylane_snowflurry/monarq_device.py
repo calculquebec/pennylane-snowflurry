@@ -3,19 +3,22 @@ from typing import Tuple
 from pennylane.devices import Device
 from pennylane.transforms.core import TransformProgram
 from pennylane.tape import QuantumScript, QuantumTape
-from execution_config import DefaultExecutionConfig, ExecutionConfig
-from api_job import Job
+from pennylane_snowflurry.execution_config import DefaultExecutionConfig, ExecutionConfig
+from pennylane_snowflurry.api_job import Job
 from pennylane_snowflurry.api_adapter import ApiAdapter
-from transpiler.monarq_transpile import get_transpiler
+from pennylane_snowflurry.transpiler.monarq_transpile import get_transpiler
 from functools import partial
-import monarq_connectivity as con
+import pennylane_snowflurry.monarq_connectivity as con
 
 class MonarqDevice(Device):
+    """
+    a device created for sending job on Calcul Quebec's MonarQ quantum computer
+    """
 
     benchmark_acceptance=0.7
 
     name = "MonarQDevice"
-    short_name = "monarq.qubit"
+    short_name = "calculqc.qubit"
     pennylane_requires = ">=0.30.0"
     author = "CalculQuebec"
     
@@ -57,12 +60,12 @@ class MonarqDevice(Device):
         czGateFidelity_tag = "czGateFidelity"
 
         api = ApiAdapter(self.host, self.user, self.access_token, MonarqDevice.realm)
-        benchmark_raw = api.get_benchmark(self.machine_name)
+        qubits_and_couplers = api.get_qubits_and_couplers(self.machine_name)
         connectivity = con.connectivity
         self.benchmark = { qubits_tag : [], couplers_tag : [] }
 
-        for coupler_id in benchmark_raw[couplers_tag]:
-            benchmark_coupler = benchmark_raw[couplers_tag][coupler_id]
+        for coupler_id in qubits_and_couplers[couplers_tag]:
+            benchmark_coupler = qubits_and_couplers[couplers_tag][coupler_id]
             conn_coupler = connectivity[couplers_tag][coupler_id]
 
             if benchmark_coupler[czGateFidelity_tag] >= MonarqDevice.benchmark_acceptance:
@@ -70,8 +73,8 @@ class MonarqDevice(Device):
 
             self.benchmark[couplers_tag].append(conn_coupler)
 
-        for qubit_id in benchmark_raw[qubits_tag]:
-            benchmark_qubit = benchmark_raw[qubits_tag][qubit_id]
+        for qubit_id in qubits_and_couplers[qubits_tag]:
+            benchmark_qubit = qubits_and_couplers[qubits_tag][qubit_id]
 
             if benchmark_qubit[readoutState1Fidelity_tag] >= MonarqDevice.benchmark_acceptance:
                 continue

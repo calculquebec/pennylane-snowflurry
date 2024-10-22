@@ -1,15 +1,11 @@
-from copy import deepcopy
 from typing import TypeVar, Callable
-import custom_gates as custom
 from pennylane.operation import Operation
 from pennylane.ops import ControlledOp
-import pennylane.transforms as transforms
 import pennylane as qml
 from pennylane import math
 from pennylane.tape import QuantumTape
 from pennylane.wires import Wires
 import numpy as np
-import networkx as nx
 
 T = TypeVar("T")
 U = TypeVar("U")
