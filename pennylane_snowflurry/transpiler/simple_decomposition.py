@@ -3,7 +3,9 @@ from pennylane.operation import Operation
 
 import pennylane.transforms as transforms
 
-standard_gates = ["T", "PauliX", "PauliY", "PauliZ", "S", "Hadamard", "CZ", "CNOT", "RZ", "RX", "RY"]
+standard_gates = ["Adjoint(T)", "Adjoint(S)", "SX", "Adjoint(SX)", 
+                  "T", "PauliX", "PauliY", "PauliZ", "S", "Hadamard", 
+                  "CZ", "CNOT", "RZ", "RX", "RY"]
 def simple_decomposition(tape : QuantumTape):
     # decompose every non-standard gates (arbitrary unitaries and 3+ qubits gates) into standard gates
 

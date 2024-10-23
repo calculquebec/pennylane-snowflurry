@@ -28,12 +28,24 @@ def get_transpiler(baseDecomposition = True,
                 optimized_tape = step2.placement_vf2(optimized_tape, benchmark)
             if placeAndRoute: 
                 optimized_tape = step3.swap_routing(optimized_tape, benchmark)
+                if baseDecomposition:
+                    optimized_tape = step1.simple_decomposition(optimized_tape)
             
-            if optimization: 
-                optimized_tape = step1.simple_decomposition(optimized_tape)
+            if optimization:
                 optimized_tape = step4.optimize(optimized_tape)
-            if nativeDecomposition: 
+
+            if nativeDecomposition:
                 optimized_tape = step5.native_gate_decomposition(optimized_tape)
+                if optimization:
+                    optimized_tape_before = optimized_tape
+                    optimized_tape = step4.optimize(optimized_tape)
+                    optimized_tape = step5.native_gate_decomposition(optimized_tape)
+                    while len(optimized_tape_before.operations) > len(optimized_tape.operations):
+                        optimized_tape_before = optimized_tape
+                        optimized_tape = step4.optimize(optimized_tape)
+                        optimized_tape = step5.native_gate_decomposition(optimized_tape)
+                    optimized_tape = optimized_tape_before
+
         new_tape = type(tape)(optimized_tape.operations, optimized_tape.measurements, shots=optimized_tape.shots)
         return [new_tape], lambda results : results[0]
 

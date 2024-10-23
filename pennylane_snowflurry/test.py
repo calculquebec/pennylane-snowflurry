@@ -1,4 +1,6 @@
 from functools import partial
+
+from pennylane.tape import QuantumTape
 from pennylane_snowflurry.utility.debug_utility import arbitrary_circuit
 import numpy as np
 import pennylane as qml
@@ -23,7 +25,7 @@ if __name__ == "__main__":
 
     num_qubits = 5
 
-    dev = MonarqDevice(num_qubits, 1000, const.host, const.user, const.access_token)
+    dev = TestDevice()
     # dev = qml.device("default.qubit", shots = 1000)
     # dev = MonarqDevice(num_qubits, 1000, const.host, const.user, const.access_token)
 
@@ -104,9 +106,10 @@ if __name__ == "__main__":
 
         return cq_depth / sf_depth
 
-    partial_circuit = partial(test_circuits.GHZ, num_qubits)
+    partial_circuit = partial(test_circuits.Toffoli)
     
     circuit = qml.QNode(partial_circuit, dev)
+
     print(circuit())
     exit()
     # print({k:int(v) for (k, v) in circuit().items()})

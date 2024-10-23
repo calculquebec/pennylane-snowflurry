@@ -84,6 +84,11 @@ def GHZ(num_wires):
     [qml.CNOT([0, i]) for i in range(1, num_wires)]
     return qml.counts(wires = range(num_wires))
 
+def Toffoli():
+    qml.Hadamard(0)
+    qml.Hadamard(1)
+    [qml.Toffoli([0, 1, 2])]
+    return qml.probs(wires = [0, 1, 2])
 def bernstein_vazirani(number : int):
     value = []
     while number > 0:

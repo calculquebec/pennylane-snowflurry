@@ -176,7 +176,8 @@ class ApiAdapter:
         res = self.get_machine_id_by_name(machine_name)
         if res.status_code != 200:
             return None
-        machine_id = json.loads(res.text)["items"][0].id
+        result = json.loads(res.text)
+        machine_id = result["items"][0]["id"]
     
         route = self.host + internal.routes.machines + "/" + machine_id + internal.routes.benchmarking
         return requests.get(route, headers=self.headers)
