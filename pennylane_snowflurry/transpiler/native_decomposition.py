@@ -2,6 +2,7 @@ from pennylane.tape import QuantumTape
 import pennylane as qml
 import pennylane_snowflurry.custom_gates as custom
 import numpy as np
+from pennylane.ops.op_math import SProd
 
 
 def _custom_tdag(wires):
@@ -190,7 +191,6 @@ def native_gate_decomposition(tape : QuantumTape, exclude_list : list[str] = Non
     """
     decomposes all non-native gate to an equivalent set of native gates
     """
-    from pennylane.ops.op_math import SProd
     # d�composer toutes les portes non-natives en porte natives
     if exclude_list is None:
         exclude_list = []

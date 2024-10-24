@@ -1,33 +1,29 @@
 from functools import partial
-
-from pennylane.tape import QuantumTape
 from pennylane_snowflurry.utility.debug_utility import arbitrary_circuit
 import numpy as np
 import pennylane as qml
 import test_circuits
 from pennylane_snowflurry.monarq_device import MonarqDevice
 from pennylane_snowflurry.test_device import TestDevice
+from pennylane_snowflurry.snowflurry_device import SnowflurryQubitDevice
 from pennylane_snowflurry.utility.debug_utility import SnowflurryUtility, get_labels
 from pennylane_snowflurry.transpiler.monarq_transpile import get_transpiler
-from pennylane_snowflurry.transpiler.simple_decomposition import simple_decomposition
-    
+from pennylane_snowflurry.transpiler.base_decomposition import base_decomposition
 
 if __name__ == "__main__":
     
     class const:
-        host = "https://manager.anyonlabs.com"
-        user = "stage"
-        access_token = "FjjIKjmDMoAMzSO4v2Bu62a+8vD39zib"
         realm = "calculqc"
         machine_name = "yamaska"
-        project_id = ""
+        project_id = "default"
         circuit_name = "test_circuit"
 
-    num_qubits = 5
+    num_qubits = 11
 
     dev = TestDevice()
-    # dev = qml.device("default.qubit", shots = 1000)
-    # dev = MonarqDevice(num_qubits, 1000, const.host, const.user, const.access_token)
+    dev = qml.device("default.qubit", shots = 1000)
+    dev = MonarqDevice(num_qubits, 1000)
+    dev = SnowflurryQubitDevice(num_qubits, 1000, "global", const.host, const.user, const.access_token, const.project_id, const.realm)
 
     def prepare(circuit, dev, regular = True, snowflurry = True, calcul_quebec = True, measurement = qml.probs):
         """
@@ -39,10 +35,11 @@ if __name__ == "__main__":
         """
 
         qnodes = []
-
+        
+        circuit()
+        tape = base_decomposition(circuit.tape)
+        
         if regular:
-            circuit()
-            tape = simple_decomposition(circuit.tape)
             qnode = qml.QNode(lambda : arbitrary_circuit(tape, measurement), dev)
             qnodes.append(qnode)
 
@@ -96,7 +93,7 @@ if __name__ == "__main__":
         return probs_is_same(reg_results, cq_results)
 
     def test_efficiency(circuit):
-        qnodes = prepare(circuit, dev, False, True, True)
+        qnodes = prepare(circuit, dev, False, True, True, measurement=qml.counts)
 
         sf_qnode = qnodes[0]
         cq_qnode = qnodes[1]
@@ -104,14 +101,20 @@ if __name__ == "__main__":
         sf_depth = qml.specs(sf_qnode)()["resources"].depth
         cq_depth = qml.specs(cq_qnode)()["resources"].depth
 
-        return cq_depth / sf_depth
+        print(f"snowflurry depth : {sf_depth}")
+        print(f"calcul quebec depth : {cq_depth}")
 
-    partial_circuit = partial(test_circuits.Toffoli)
     
+    partial_circuit = partial(test_circuits.GHZ, 4)
     circuit = qml.QNode(partial_circuit, dev)
 
     print(circuit())
     exit()
-    # print({k:int(v) for (k, v) in circuit().items()})
-    print(test_veracity(circuit))
-    print(test_efficiency(circuit))
+
+    for i in range(3, 16):
+        partial_circuit = partial(test_circuits.GHZ, i)
+        circuit = qml.QNode(partial_circuit, dev)
+
+        print(f"GHZ with {i} qubits : ")
+        test_efficiency(circuit)
+        print("\n")

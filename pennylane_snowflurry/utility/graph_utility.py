@@ -1,13 +1,15 @@
 from pennylane.tape import QuantumTape
 from pennylane.operation import Operation
 import networkx as nx
+from networkx.algorithms.isomorphism.ismags import ISMAGS
 from typing import Tuple
 from copy import deepcopy
-
+from itertools import combinations
+from pennylane_snowflurry.monarq_data import connectivity, build_benchmark
+from pennylane_snowflurry.api_utility import ApiUtility
 
 def is_directly_connected(op : Operation, machine_topology : nx.Graph) -> bool:
     return op.wires[1] in machine_topology.neighbors(op.wires[0])
-
 
 def circuit_graph(tape : QuantumTape) -> nx.Graph:
     """
@@ -27,32 +29,13 @@ def circuit_graph(tape : QuantumTape) -> nx.Graph:
     g.add_nodes_from([w for w in tape.wires if w not in g.nodes])
     return g
 
+def machine_graph(use_benchmark = True):
+    benchmark = build_benchmark() if use_benchmark else None
+    broken_nodes = benchmark[ApiUtility.keys.qubits] if use_benchmark else []
+    broken_couplers = benchmark[ApiUtility.keys.couplers] if use_benchmark else []
 
-
-def machine_graph(broken_nodes : list[int] = [], broken_couplers : list[Tuple[int, int]] = []):
-#       00
-#       |
-#    08-04-01
-#    |  |  | 
-# 16-12-09-05-02
-# |  |  |  |  |
-# 20-17-13-10-06-03
-#    |  |  |  |  |
-#    21-18-14-11-07
-#       |  |  |
-#       22-19-15
-#          |
-#          23
+    links = [(v[0], v[1]) for (_, v) in connectivity[ApiUtility.keys.couplers].items()]
     
-    links = [(0, 4), (1, 4), (1, 5), (2, 5), (2, 6), 
-             (3, 6), (3, 7), (4, 8), (4, 9), 
-             (5, 9), (5, 10), (6, 10), (6, 11), 
-             (7, 11), (8, 12), (9, 12), (9, 13), 
-             (10, 13), (10, 14), (11, 14), (11, 15), 
-             (12, 16), (12, 17), (13, 17), (13, 18),
-             (14, 18), (14, 19), (15, 19), (16, 20),
-             (17, 20), (17, 21), (18, 21), (18, 22),
-             (19, 22), (19, 23)]
     return nx.Graph([i for i in links if i[0] not in broken_nodes and i[1] not in broken_nodes \
             and i not in broken_couplers and list(reversed(i)) not in broken_couplers])
 
@@ -62,21 +45,28 @@ def _find_isomorphisms(circuit : nx.Graph, machine : nx.Graph) -> dict[int, int]
        return {v : k for k, v in mono.items()}
     return None
 
-def find_largest_subgraph_isomorphism(circuit : nx.Graph, machine : nx.Graph):
+def find_largest_subgraph_isomorphism_vf2(circuit : nx.Graph, machine : nx.Graph):
     """
-    TODO : not super efficient. might be better to find another technique
+    Uses vf2 and combinations to find the largest common graph between two graphs
     """
-    from itertools import combinations
-
     edges = [e for e in circuit.edges]
     for i in reversed(range(len(edges) + 1)):
         for comb in combinations(edges, i):
             result = _find_isomorphisms(nx.Graph(comb), machine)
             if result: return result
 
+def find_largest_subgraph_isomorphism_imags(circuit : nx.Graph, machine : nx.Graph):
+    """
+    Uses IMAGS to find the largest common graph between two graphs
+    """
+
+    ismags = ISMAGS(machine, circuit)
+    for mapping in ismags.largest_common_subgraph():
+        return {v:k for (k, v) in mapping.items()} if mapping is not None and len(mapping) > 0 else mapping
+
 def most_connected_node(source : int, graph : nx.Graph):
     """
-    find node in graph minus excluded nodes with most connections with the given source node
+    find node in graph with most connections with the given source node
     """
     g_copy = deepcopy(graph)
     return max(g_copy.nodes, \
@@ -84,7 +74,14 @@ def most_connected_node(source : int, graph : nx.Graph):
 
 def shortest_path(a : int, b : int, graph : nx.Graph, excluding : list[int] = [], prioritized_nodes : list[int] = []):
     """
-    find the shortest path between node a and b in graph minus excluded nodes
+    find the shortest path between node a and b
+
+    Args :
+        a : start node
+        b : end node
+        graph : the graph to find a path in
+        excluding : nodes we dont want to use
+        prioritized_nodes : nodes we want to use if possible
     """
     g_copy = deepcopy(graph)
     g_copy.remove_nodes_from(excluding)
@@ -92,8 +89,11 @@ def shortest_path(a : int, b : int, graph : nx.Graph, excluding : list[int] = []
                          weight = lambda u, v, _: 1 if any(node in (u, v) 
                                                            for node in prioritized_nodes) else 2)
 
-def find_best_wire(machine_graph : nx.Graph):
-    return max(machine_graph.nodes, key=lambda n: machine_graph.degree(n))
+def find_best_wire(graph : nx.Graph):
+    """
+    find node with highest degree in graph
+    """
+    return max(graph.nodes, key=lambda n: graph.degree(n))
 
 def find_closest_wire(a : int, machine_graph : nx.Graph, excluding : list[int]):
     """
@@ -104,7 +104,7 @@ def find_closest_wire(a : int, machine_graph : nx.Graph, excluding : list[int]):
     for b in machine_graph.nodes:
         if b in excluding:
             continue
-        value = shortest_path(a, b, machine_graph)[-1]
+        value = len(shortest_path(a, b, machine_graph))
         
         if value < min_value:
             min_value = value

@@ -6,7 +6,6 @@ import numpy as np
 def remove_root_zs(tape : QuantumTape, iterations = 3) -> QuantumTape:
     """
     removes all heading z operations
-    TODO : add unit tests
     """
     new_operations = tape.operations.copy()
     for i in range(iterations):
@@ -24,7 +23,6 @@ def remove_root_zs(tape : QuantumTape, iterations = 3) -> QuantumTape:
 def remove_leaf_zs(tape : QuantumTape, iterations = 3) -> QuantumTape:
     """
     removes all tailing z operations
-    TODO : add unit tests
     """
     new_operations = tape.operations.copy()
 
@@ -42,7 +40,10 @@ def remove_leaf_zs(tape : QuantumTape, iterations = 3) -> QuantumTape:
             break
     return type(tape)(new_operations, tape.measurements, tape.shots)
 
-def remove_trivials(tape : QuantumTape, iteration = 3, epsilon = 1E-8):
+def _remove_trivials(tape : QuantumTape, iteration = 3, epsilon = 1E-8):
+    """
+    removes 0rad rotations and identities
+    """
     new_operations = []
     for op in tape.operations:
         if len(op.parameters) > 0:
@@ -51,14 +52,15 @@ def remove_trivials(tape : QuantumTape, iteration = 3, epsilon = 1E-8):
             while angle < 0: angle += 2 * np.pi
             if abs(angle) > epsilon:
                 new_operations.append(type(op)(angle, wires=op.wires))
+        elif op.name == "Identity":
+            continue
         else:
            new_operations.append(op)
     return type(tape)(new_operations, tape.measurements, tape.shots)
 
-def base_optimisation(tape : QuantumTape) -> QuantumTape:
+def commute_and_merge(tape : QuantumTape) -> QuantumTape:
     """
-    expands the circuit to rz, rx and cz gates incrementally, and optimizes at each expansion step
-    TODO : add pattern matching
+    applies commutations, rotation merges and inverses/trivial gates cancellations
     """
     iterations = 3
 
@@ -69,7 +71,7 @@ def base_optimisation(tape : QuantumTape) -> QuantumTape:
         new_tape = transforms.commute_controlled(new_tape)[0][0]
         new_tape = transforms.cancel_inverses(new_tape)[0][0]
         new_tape = transforms.merge_rotations(new_tape)[0][0]
-        new_tape = remove_trivials(new_tape)
+        new_tape = _remove_trivials(new_tape)
         if tape.operations == new_tape.operations:
             tape = new_tape
             break;

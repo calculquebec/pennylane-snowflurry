@@ -1,21 +1,27 @@
-import json
 from typing import Tuple
 from pennylane.devices import Device
 from pennylane.transforms.core import TransformProgram
 from pennylane.tape import QuantumScript, QuantumTape
 from pennylane_snowflurry.execution_config import DefaultExecutionConfig, ExecutionConfig
 from pennylane_snowflurry.api_job import Job
-from pennylane_snowflurry.api_adapter import ApiAdapter
 from pennylane_snowflurry.transpiler.monarq_transpile import get_transpiler
-from functools import partial
-import pennylane_snowflurry.monarq_connectivity as con
 
 class MonarqDevice(Device):
-    """
-    a device created for sending job on Calcul Quebec's MonarQ quantum computer
-    """
+    """PennyLane device for interfacing with Anyon's quantum Hardware.
 
-    benchmark_acceptance=0.7
+    * Extends the PennyLane :class:`~.pennylane.Device` class.
+    * Batching is not supported yet.
+
+    Args:
+        wires (int, Iterable[Number, str]): Number of wires present on the device, or iterable that
+            contains unique labels for the wires as numbers (i.e., ``[-1, 0, 2]``) or strings
+            (``['ancilla', 'q1', 'q2']``). Default ``None`` if not specified.
+        shots (int, Sequence[int], Sequence[Union[int, Sequence[int]]]): The default number of shots
+            to use in executions involving this device.
+        host (str): URL of the QPU server.
+        user (str): Username.
+        access_token (str): User access token.
+    """
 
     name = "MonarQDevice"
     short_name = "calculqc.qubit"
@@ -33,53 +39,20 @@ class MonarqDevice(Device):
     
     def __init__(self, 
                  wires, 
-                 shots, 
-                 host, 
-                 user, 
-                 access_token, 
+                 shots,  
                  baseDecomposition=True, 
                  placeAndRoute=True, 
                  optimization=True, 
-                 nativeDecomposition=True) -> None:
+                 nativeDecomposition=True, 
+                 use_benchmarking=True) -> None:
 
         super().__init__(wires=wires, shots=shots)
-        self.host = host
-        self.user = user
-        self.access_token = access_token
         self._baseDecomposition = baseDecomposition
         self._placeAndRoute = placeAndRoute
         self._optimization = optimization, 
-        self._nativeDecomposition = nativeDecomposition
-
-        self._build_benchmark()
+        self._nativeDecomposition = nativeDecomposition 
+        self._use_benchmarking = use_benchmarking
     
-    def _build_benchmark(self):
-        couplers_tag = "couplers"
-        qubits_tag = "qubits"
-        readoutState1Fidelity_tag = "readoutState1Fidelity"
-        czGateFidelity_tag = "czGateFidelity"
-
-        api = ApiAdapter(self.host, self.user, self.access_token, MonarqDevice.realm)
-        qubits_and_couplers = api.get_qubits_and_couplers(self.machine_name)
-        connectivity = con.connectivity
-        self.benchmark = { qubits_tag : [], couplers_tag : [] }
-
-        for coupler_id in qubits_and_couplers[couplers_tag]:
-            benchmark_coupler = qubits_and_couplers[couplers_tag][coupler_id]
-            conn_coupler = connectivity[couplers_tag][coupler_id]
-
-            if benchmark_coupler[czGateFidelity_tag] >= MonarqDevice.benchmark_acceptance:
-                continue
-
-            self.benchmark[couplers_tag].append(conn_coupler)
-
-        for qubit_id in qubits_and_couplers[qubits_tag]:
-            benchmark_qubit = qubits_and_couplers[qubits_tag][qubit_id]
-
-            if benchmark_qubit[readoutState1Fidelity_tag] >= MonarqDevice.benchmark_acceptance:
-                continue
-
-            self.benchmark[qubits_tag].append(int(qubit_id))
 
     @property
     def name(self):
@@ -103,15 +76,18 @@ class MonarqDevice(Device):
         config = execution_config
 
         transform_program = TransformProgram()
-        transform_program.add_transform(get_transpiler(baseDecomposition=self._baseDecomposition, 
-                                                placeAndRoute = self._placeAndRoute, 
-                                                optimization = self._optimization, 
-                                                nativeDecomposition = self._nativeDecomposition,
-                                                benchmark=self.benchmark))
+        transform_program.add_transform(get_transpiler(self._baseDecomposition, 
+                                                self._placeAndRoute, 
+                                                self._optimization, 
+                                                self._nativeDecomposition, 
+                                                self._use_benchmarking))
         return transform_program, config
 
     def execute(self, circuits: QuantumTape | list[QuantumTape], execution_config : ExecutionConfig = DefaultExecutionConfig):
-        # circuits = [circuits]
+        """
+        This function runs provided quantum circuit on MonarQ
+        A job is first created, and then ran. Results are returned to the user.
+        """
         is_single_circuit : bool = isinstance(circuits, QuantumScript)
         if is_single_circuit:
             circuits = [circuits]
@@ -133,14 +109,7 @@ class MonarqDevice(Device):
             # Fallback or default behavior if execution_config is not an instance of ExecutionConfig
             interface = None
             
-        results = [Job(host=self.host, 
-                       user=self.user, 
-                       access_token=self.access_token, 
-                       realm=MonarqDevice.realm)
-                   .run(circ, 
-                        MonarqDevice.circuit_name, 
-                        MonarqDevice.project_id, 
-                        MonarqDevice.machine_name) for circ in circuits]
+        results = [Job(circ).run() for circ in circuits]
         
         return results if not is_single_circuit else results[0]
 

@@ -27,13 +27,21 @@ class TestDevice(Device):
         "PauliZ"
     }
     
-    def __init__(self, wires = None, shots = None, baseDecomposition=True, placeAndRoute=True, optimization=True, nativeDecomposition=True) -> None:
+    def __init__(self, 
+                 wires = None, 
+                 shots = None, 
+                 baseDecomposition=True, 
+                 placeAndRoute=True, 
+                 optimization=True, 
+                 nativeDecomposition=True, 
+                 use_benchmark=False) -> None:
         super().__init__(wires=wires, shots=shots)
         
         self._baseDecomposition = baseDecomposition
         self._placeAndRoute = placeAndRoute
         self._optimization = optimization, 
         self._nativeDecomposition = nativeDecomposition
+        self._use_benchmark = use_benchmark
     
     @property
     def name(self):
@@ -60,7 +68,8 @@ class TestDevice(Device):
         transform_program.add_transform(get_transpiler(baseDecomposition=self._baseDecomposition, 
                                                 placeAndRoute = self._placeAndRoute, 
                                                 optimization = self._optimization, 
-                                                nativeDecomposition = self._nativeDecomposition))
+                                                nativeDecomposition = self._nativeDecomposition,
+                                                use_benchmark=self._use_benchmark))
         return transform_program, config
 
     def execute(self, circuits: QuantumTape | list[QuantumTape], execution_config : ExecutionConfig = DefaultExecutionConfig):

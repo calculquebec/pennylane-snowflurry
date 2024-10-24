@@ -13,6 +13,8 @@ class ZX_DAG:
     """
     this class is a Directed Acyclic Graph containing only Z or X rotations and CZ gates
     It is possible to pass any type of gate at initialization, but the circuit will be decomposed.
+
+    This is deprecated and might not work. Do not use.
     """
     
     _index_generator = -1
@@ -345,7 +347,7 @@ def zx_dag_optimisation(tape : QuantumTape):
     dag = dag.simplify(20)
     
     if DEBUG:
-        from optimization_utility import to_qasm
+        from pennylane_snowflurry.utility.optimization_utility import to_qasm
         print(to_qasm(dag.to_tape(), False))
 
     return tape

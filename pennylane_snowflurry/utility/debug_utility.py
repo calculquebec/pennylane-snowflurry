@@ -1,5 +1,4 @@
 from functools import partial
-from pennylane.math import quantum
 from pennylane.measurements import MeasurementProcess
 from pennylane.operation import Operation
 from pennylane.tape import QuantumTape
@@ -10,6 +9,9 @@ from pennylane_snowflurry.pennylane_converter import PennylaneConverter, Snowflu
 import matplotlib.pyplot as plt
 
 def to_qasm(tape : QuantumTape) -> str:
+    """
+    turns a quantum tape into a qasm string
+    """
     eq = {
         "PauliX" : "x", "PauliY" : "y", "PauliZ" : "z", "Identity" : "id",
         "RX" : "rx", "RY" : "ry", "RZ" : "rz", "PhaseShift" : "p", "Hadamard" : "h",
@@ -20,9 +22,8 @@ def to_qasm(tape : QuantumTape) -> str:
     }
     return "\n".join([eq[op.name] \
         + (f"({op.parameters[0]}) " if len(op.parameters) > 0 else " ") \
-        + " ".join([f"q[{w}]" for w in op.wires]) \
+        + ", ".join([f"q[{w}]" for w in op.wires]) \
         + ";" for op in tape.operations])
-
 
 class SnowflurryUtility:
     def __init__(self, tape : QuantumTape, host, user, access_token, realm):
@@ -106,7 +107,6 @@ class SnowflurryUtility:
         sf_circuit = Snowflurry.transpile(Snowflurry.get_transpiler(qpu), sf_circuit)
         Snowflurry.sf_circuit = sf_circuit
 
-
 def arbitrary_circuit(tape : QuantumTape, measurement = qml.probs):
     """
     create a quantum function out of a tape and a default measurement to use (overrides the measurements in the qtape)
@@ -127,6 +127,9 @@ def arbitrary_circuit(tape : QuantumTape, measurement = qml.probs):
     return _arbitrary_circuit(tape.operations, tape.measurements)
 
 def get_labels(up_to : int):
+    """
+    gets bitstrings from 0 to "up_to" value
+    """
     num = int(np.log2(up_to)) + 1
     return [format(i, f"0{num}b") for i in range(up_to + 1)]
 
@@ -155,3 +158,7 @@ def bar_plot(labels, *values):
     ax.set_xticks(x + width, labels)
     ax.set_ylim(0, 250)
     plt.show()
+
+def verbosePrint(content, verbose : bool = False):
+    if verbose:
+        print(content)

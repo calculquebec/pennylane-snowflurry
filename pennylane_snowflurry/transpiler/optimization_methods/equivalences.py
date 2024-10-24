@@ -45,6 +45,11 @@ def _search_and_apply_equivalences(operations : list[Operation], equivalences):
     return result
 
 def apply_equivalences(tape: QuantumTape, equivalences) -> QuantumTape:
+    """
+    checks for groups of gates and replaces it by shorter equivalents
+
+    this is deprecated and shouldn't be used
+    """
     new_operations = []
     list_copy = tape.operations.copy()
 

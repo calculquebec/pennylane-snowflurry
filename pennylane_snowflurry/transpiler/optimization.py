@@ -3,7 +3,7 @@ import pennylane as qml
 from pennylane.tape import QuantumTape
 from pennylane_snowflurry.utility.optimization_utility import expand, is_single_axis_gate
 import pennylane.transforms as transforms
-from .optimization_methods.commute_and_merge import base_optimisation
+from .optimization_methods.commute_and_merge import commute_and_merge
 
 def HCZH_cnot(wires):
     return [
@@ -35,17 +35,17 @@ def get_rid_of_y_rotations(tape : QuantumTape):
 
 def optimize(tape : QuantumTape) -> QuantumTape:
     
-    tape = base_optimisation(tape)
+    tape = commute_and_merge(tape)
 
     tape = expand(tape, { "CNOT" : HCZH_cnot })
-    tape = base_optimisation(tape)
+    tape = commute_and_merge(tape)
     
     tape = expand(tape, { "Hadamard" : ZXZ_Hadamard })
-    tape = base_optimisation(tape)
+    tape = commute_and_merge(tape)
     
     tape = transforms.create_expand_fn(depth=3, stop_at=lambda op: op.name in ["RZ", "RX", "RY", "CZ"])(tape)
-    tape = base_optimisation(tape)
+    tape = commute_and_merge(tape)
     
     tape = get_rid_of_y_rotations(tape)
-    tape = base_optimisation(tape)
+    tape = commute_and_merge(tape)
     return tape

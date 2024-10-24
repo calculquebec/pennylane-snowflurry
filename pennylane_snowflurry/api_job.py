@@ -1,7 +1,8 @@
 from pennylane.tape import QuantumTape
 import json
 import time
-from pennylane_snowflurry.api_adapter import ApiAdapter, internal
+from pennylane_snowflurry.api_adapter import ApiAdapter
+from pennylane_snowflurry.api_utility import ApiUtility
 
 class JobException(Exception):
     def __init__(self, message : str):
@@ -15,44 +16,29 @@ class Job:
     access_token : str
     realm : str
     
-    def __init__(self, 
-                 host = "", 
-                 user = "", 
-                 access_token = "", 
-                 realm = "", ):
-        self.adapter = ApiAdapter(host, user, access_token, realm)
-        
-    def verbosePrint(content, verbose : bool = False):
-        if verbose:
-            print(content)
+    def __init__(self, circuit : QuantumTape, circuit_name = None):
+        self.adapter = ApiAdapter()
+        self.circuit_dict = ApiUtility.convert_circuit(circuit)
+        self.circuit_name = circuit_name if circuit_name is not None else "default"
+        self.shots = circuit.shots.total_shots
 
-    def run(self, circuit : QuantumTape, circuit_name : str, project_id : str, machine_name : str, verbose = False, max_tries = 100):
+    def run(self, max_tries : int = -1):
         """
         converts a quantum tape into a dictionary, readable by thunderhead
         creates a job on thunderhead
         fetches the result until the job is successfull, and returns the result
         """
 
-        circuit_dict = internal.convert_circuit(circuit)
+        if max_tries == -1: max_tries = 2 ** 15
+        if circuit_name is None: circuit_name = "default"
 
-        response = None
-
-        try:
-            response = self.adapter.create_job(circuit_dict, 
-                                               circuit_name, 
-                                               project_id, 
-                                               machine_name, 
-                                               circuit.shots.total_shots)
-        except Exception as e:
-            print(e)
-            raise e;
+        response = self.adapter.create_job(self.circuit_dict, self.circuit_name, self.shots)
         
         if(response.status_code == 200):
             current_status = ""
             job_id = json.loads(response.text)["job"]["id"]
-            Job.verbosePrint("sent job with id : " + job_id, verbose)
-            for _ in range(max_tries):
-                time.sleep(0.1)
+            for i in range(max_tries):
+                time.sleep(0.2)
                 response = self.adapter.job_by_id(job_id)
 
                 if response.status_code != 200: 
@@ -62,7 +48,6 @@ class Job:
                 status = content["job"]["status"]["type"]
                 if(current_status != status):
                     current_status = status
-                    Job.verbosePrint(current_status, verbose)
 
                 if(status != "SUCCEEDED"): 
                     continue

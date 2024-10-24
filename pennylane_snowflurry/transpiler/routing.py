@@ -5,7 +5,7 @@ from pennylane_snowflurry.utility.graph_utility import circuit_graph, shortest_p
 
 
 # TODO : there are better alternatives than using swap gates (depth wise)
-def swap_routing(tape : QuantumTape, benchmark : dict[str, any] = None):
+def swap_routing(tape : QuantumTape, use_benchmark = True):
     """
     uses swap to permute wires when 2 qubits operation appear which are not directly mapped to a coupler in the machine
     
@@ -14,11 +14,8 @@ def swap_routing(tape : QuantumTape, benchmark : dict[str, any] = None):
     the new circuit will be : swap(4, 1), cnot(0, 4), swap(4, 1)
     """
     # en fonction du mappage choisi, connecter les qubits non-couplés à la position des portes touchées en utilisant des swaps
-    if benchmark is None: benchmark = { "qubits": [], "couplers": [] }
-    broken_nodes = benchmark["qubits"]
-    broken_couplers = benchmark["couplers"]
     circuit_topology = circuit_graph(tape)
-    machine_topology = machine_graph(broken_nodes, broken_couplers)
+    machine_topology = machine_graph(use_benchmark)
     new_operations : list[Operation] = []
     list_copy = tape.operations.copy()
 
